@@ -1,0 +1,150 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{2d639f6f-26dd-4131-824c-2bb68413e4b6}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>janus\applications\liveview\main.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>janus\applications\liveview\</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>Global|PythonCore|3.7</InterpreterId>
+    <IsWindowsApplication>True</IsWindowsApplication>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="janus\actions\__init__.py" />
+    <Compile Include="janus\applications\liveview\main.py" />
+    <Compile Include="janus\applications\liveview\__init__.py" />
+    <Compile Include="janus\applications\maximator\main.py" />
+    <Compile Include="janus\applications\maximator\__init__.py" />
+    <Compile Include="janus\applications\xanes\main.py" />
+    <Compile Include="janus\applications\xanes\__init__.py" />
+    <Compile Include="janus\applications\__init__.py" />
+    <Compile Include="janus\const.py" />
+    <Compile Include="janus\controllers\autofocuscontroller.py" />
+    <Compile Include="janus\controllers\axiscontroller.py" />
+    <Compile Include="janus\controllers\chipregistry.py" />
+    <Compile Include="janus\controllers\controllerbase.py" />
+    <Compile Include="janus\controllers\gridcontroller.py" />
+    <Compile Include="janus\controllers\__init__.py" />
+    <Compile Include="janus\core.py" />
+    <Compile Include="janus\devices\camera.py" />
+    <Compile Include="janus\devices\connector.py" />
+    <Compile Include="janus\devices\devicebase.py" />
+    <Compile Include="janus\devices\generic.py" />
+    <Compile Include="janus\devices\motor.py" />
+    <Compile Include="janus\devices\__init__.py" />
+    <Compile Include="janus\utils\config.py" />
+    <Compile Include="janus\utils\eventhub.py" />
+    <Compile Include="janus\utils\libautofocus.py" />
+    <Compile Include="janus\utils\log.py" />
+    <Compile Include="janus\utils\observableproperty.py" />
+    <Compile Include="janus\utils\xmlchipparser.py" />
+    <Compile Include="janus\utils\__init__.py" />
+    <Compile Include="janus\widgets\acq_fluorescence.py" />
+    <Compile Include="janus\widgets\autofocus.py" />
+    <Compile Include="janus\widgets\beamprofile.py" />
+    <Compile Include="janus\widgets\camera.py" />
+    <Compile Include="janus\widgets\customized.py" />
+    <Compile Include="janus\widgets\gridcontrols.py" />
+    <Compile Include="janus\widgets\gridtoolbar.py" />
+    <Compile Include="janus\widgets\gridwidget.py" />
+    <Compile Include="janus\widgets\log.py" />
+    <Compile Include="janus\widgets\mainmenubar.py" />
+    <Compile Include="janus\widgets\motorcontrols.py" />
+    <Compile Include="janus\widgets\nowheelspinbox.py" />
+    <Compile Include="janus\widgets\plot.py" />
+    <Compile Include="janus\widgets\scancontrols.py" />
+    <Compile Include="janus\widgets\statusbar.py" />
+    <Compile Include="janus\widgets\ui\acq_run_parameters_ui.py" />
+    <Compile Include="janus\widgets\ui\acq_xanes_parameters_ui.py" />
+    <Compile Include="janus\widgets\ui\acq_xrf_parameters_ui.py" />
+    <Compile Include="janus\widgets\ui\autofocus_ui.py" />
+    <Compile Include="janus\widgets\ui\beamprofile_ui.py" />
+    <Compile Include="janus\widgets\ui\camera_controls_ui.py" />
+    <Compile Include="janus\widgets\ui\element_chooser_ui.py" />
+    <Compile Include="janus\widgets\ui\gridcontrols_ui.py" />
+    <Compile Include="janus\widgets\ui\gridtoolbar_ui.py" />
+    <Compile Include="janus\widgets\ui\log_ui.py" />
+    <Compile Include="janus\widgets\ui\motorcontrols_ui.py" />
+    <Compile Include="janus\widgets\ui\scan_ui.py" />
+    <Compile Include="janus\widgets\ui\_autofocus_ui.py" />
+    <Compile Include="janus\widgets\__init__.py" />
+    <Compile Include="janus\__init__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="janus\applications\liveview\config.ini" />
+    <Content Include="janus\applications\liveview\simulation.jpeg" />
+    <Content Include="janus\applications\liveview\simulation2.jpeg" />
+    <Content Include="janus\applications\liveview\snapshot.png" />
+    <Content Include="janus\applications\liveview\test_beam.png" />
+    <Content Include="janus\applications\maximator\config.ini" />
+    <Content Include="janus\widgets\icons\center.png" />
+    <Content Include="janus\widgets\icons\center3.png" />
+    <Content Include="janus\widgets\icons\dir_down.png" />
+    <Content Include="janus\widgets\icons\dir_in.png" />
+    <Content Include="janus\widgets\icons\dir_left.png" />
+    <Content Include="janus\widgets\icons\dir_out.png" />
+    <Content Include="janus\widgets\icons\dir_right.png" />
+    <Content Include="janus\widgets\icons\dir_up.png" />
+    <Content Include="janus\widgets\icons\edit.png" />
+    <Content Include="janus\widgets\icons\grid\70699-svg.png" />
+    <Content Include="janus\widgets\icons\grid\beamprofile.png" />
+    <Content Include="janus\widgets\icons\grid\bychip.png" />
+    <Content Include="janus\widgets\icons\grid\bysize.png" />
+    <Content Include="janus\widgets\icons\grid\camera.png" />
+    <Content Include="janus\widgets\icons\grid\cross.png" />
+    <Content Include="janus\widgets\icons\grid\fillpattern.png" />
+    <Content Include="janus\widgets\icons\grid\free.png" />
+    <Content Include="janus\widgets\icons\grid\move.png" />
+    <Content Include="janus\widgets\icons\grid\poimove.png" />
+    <Content Include="janus\widgets\icons\grid\setorigin.png" />
+    <Content Include="janus\widgets\icons\grid\set_origin.png" />
+    <Content Include="janus\widgets\icons\lock.png" />
+    <Content Include="janus\widgets\icons\save.png" />
+    <Content Include="janus\widgets\icons\scan_ghbl.gif" />
+    <Content Include="janus\widgets\icons\scan_ghbr.gif" />
+    <Content Include="janus\widgets\icons\scan_ghtl.gif" />
+    <Content Include="janus\widgets\icons\scan_ghtr.gif" />
+    <Content Include="janus\widgets\icons\scan_gvbl.gif" />
+    <Content Include="janus\widgets\icons\scan_gvbr.gif" />
+    <Content Include="janus\widgets\icons\scan_gvtl.gif" />
+    <Content Include="janus\widgets\icons\scan_gvtr.gif" />
+    <Content Include="janus\widgets\icons\scan_shbl.gif" />
+    <Content Include="janus\widgets\icons\scan_shbr.gif" />
+    <Content Include="janus\widgets\icons\scan_shtl.gif" />
+    <Content Include="janus\widgets\icons\scan_shtr.gif" />
+    <Content Include="janus\widgets\icons\scan_svbl.gif" />
+    <Content Include="janus\widgets\icons\scan_svbr.gif" />
+    <Content Include="janus\widgets\icons\scan_svtl.gif" />
+    <Content Include="janus\widgets\icons\scan_svtr.gif" />
+    <Content Include="janus\widgets\icons\stop.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="janus" />
+    <Folder Include="janus\actions" />
+    <Folder Include="janus\applications" />
+    <Folder Include="janus\applications\liveview" />
+    <Folder Include="janus\applications\maximator" />
+    <Folder Include="janus\applications\xanes" />
+    <Folder Include="janus\controllers" />
+    <Folder Include="janus\devices" />
+    <Folder Include="janus\utils" />
+    <Folder Include="janus\widgets" />
+    <Folder Include="janus\widgets\icons" />
+    <Folder Include="janus\widgets\icons\grid" />
+    <Folder Include="janus\widgets\ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|3.7" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>

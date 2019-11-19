@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FormAcqXanes</class>
+ <widget class="QWidget" name="FormAcqXanes">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>275</width>
+    <height>480</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QFormLayout" name="formLayout">
+   <item row="0" column="0">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Element</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QElementChooser" name="elementChooserAcqXanesElement"/>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>Edge</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QComboBox" name="comboBoxAcqXanesEdge">
+     <item>
+      <property name="text">
+       <string>K</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>L1</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>L2</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>L3</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Transmission</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QDoubleSpinBox" name="doubleSpinBoxAcqXanesTransmission">
+     <property name="suffix">
+      <string> %</string>
+     </property>
+     <property name="decimals">
+      <number>4</number>
+     </property>
+     <property name="maximum">
+      <double>100.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
+     </property>
+     <property name="value">
+      <double>0.010000000000000</double>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QCheckBox" name="checkBoxAcqXanesTransmission">
+     <property name="text">
+      <string>use current</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QDoubleSpinBox" name="doubleSpinBoxAcqXanesVelocity">
+     <property name="suffix">
+      <string> eV/s</string>
+     </property>
+     <property name="minimum">
+      <double>0.100000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>4.000000000000000</double>
+     </property>
+     <property name="value">
+      <double>1.000000000000000</double>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="labelAcqXanesInterval">
+     <property name="text">
+      <string>Integration time</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QDoubleSpinBox" name="doubleSpinBoxAcqXanesInterval">
+     <property name="suffix">
+      <string> s</string>
+     </property>
+     <property name="minimum">
+      <double>0.010000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>10.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.100000000000000</double>
+     </property>
+     <property name="value">
+      <double>1.000000000000000</double>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="label_6">
+     <property name="text">
+      <string>Start Energy</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="1">
+    <widget class="QSpinBox" name="spinBoxAcqXanesEnergyStart">
+     <property name="suffix">
+      <string> eV</string>
+     </property>
+     <property name="maximum">
+      <number>40000</number>
+     </property>
+     <property name="value">
+      <number>12000</number>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0">
+    <widget class="QLabel" name="label_7">
+     <property name="text">
+      <string>Stop Energy</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="1">
+    <widget class="QSpinBox" name="spinBoxAcqXanesEnergyStop">
+     <property name="suffix">
+      <string> eV</string>
+     </property>
+     <property name="maximum">
+      <number>40000</number>
+     </property>
+     <property name="value">
+      <number>12100</number>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="labelAcqXanesVelocity">
+     <property name="text">
+      <string>Velocity</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="1">
+    <widget class="QSpinBox" name="spinBoxAcqXanesEmissionEnergy">
+     <property name="suffix">
+      <string> eV</string>
+     </property>
+     <property name="maximum">
+      <number>40000</number>
+     </property>
+     <property name="value">
+      <number>11000</number>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="1">
+    <widget class="QSpinBox" name="spinBoxAcqXrfRoiWidth">
+     <property name="suffix">
+      <string> eV</string>
+     </property>
+     <property name="prefix">
+      <string>+/- </string>
+     </property>
+     <property name="maximum">
+      <number>500</number>
+     </property>
+     <property name="value">
+      <number>10</number>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="0">
+    <widget class="QLabel" name="label_8">
+     <property name="text">
+      <string>Emission line</string>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="0">
+    <widget class="QLabel" name="label_9">
+     <property name="text">
+      <string>ROI width</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QElementChooser</class>
+   <extends>QComboBox</extends>
+   <header>janus.widgets.qt_modified</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

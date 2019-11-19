@@ -1,0 +1,97 @@
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'janus/widgets/ui/acq_run_parameters.ui'
+#
+# Created by: PyQt5 UI code generator 5.7
+#
+# WARNING! All changes made in this file will be lost!
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+class Ui_FormAcqRun(object):
+    def setupUi(self, FormAcqRun):
+        FormAcqRun.setObjectName("FormAcqRun")
+        FormAcqRun.resize(275, 268)
+        self.verticalLayout = QtWidgets.QVBoxLayout(FormAcqRun)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.groupBoxSampleName = QtWidgets.QGroupBox(FormAcqRun)
+        self.groupBoxSampleName.setObjectName("groupBoxSampleName")
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.groupBoxSampleName)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.lineEditAcqSampleName = QtWidgets.QLineEdit(self.groupBoxSampleName)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(5)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.lineEditAcqSampleName.sizePolicy().hasHeightForWidth())
+        self.lineEditAcqSampleName.setSizePolicy(sizePolicy)
+        self.lineEditAcqSampleName.setSizeIncrement(QtCore.QSize(5, 0))
+        self.lineEditAcqSampleName.setBaseSize(QtCore.QSize(5, 0))
+        self.lineEditAcqSampleName.setObjectName("lineEditAcqSampleName")
+        self.horizontalLayout.addWidget(self.lineEditAcqSampleName)
+        self.lineEditAcqRunNumer = QtWidgets.QLineEdit(self.groupBoxSampleName)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(1)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lineEditAcqRunNumer.sizePolicy().hasHeightForWidth())
+        self.lineEditAcqRunNumer.setSizePolicy(sizePolicy)
+        self.lineEditAcqRunNumer.setSizeIncrement(QtCore.QSize(1, 0))
+        self.lineEditAcqRunNumer.setBaseSize(QtCore.QSize(1, 0))
+        self.lineEditAcqRunNumer.setMaxLength(4)
+        self.lineEditAcqRunNumer.setReadOnly(True)
+        self.lineEditAcqRunNumer.setObjectName("lineEditAcqRunNumer")
+        self.horizontalLayout.addWidget(self.lineEditAcqRunNumer)
+        self.verticalLayout_2.addLayout(self.horizontalLayout)
+        self.label = QtWidgets.QLabel(self.groupBoxSampleName)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
+        self.label.setSizePolicy(sizePolicy)
+        self.label.setObjectName("label")
+        self.verticalLayout_2.addWidget(self.label)
+        self.plainTextEditAcqComment = QtWidgets.QPlainTextEdit(self.groupBoxSampleName)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(2)
+        sizePolicy.setHeightForWidth(self.plainTextEditAcqComment.sizePolicy().hasHeightForWidth())
+        self.plainTextEditAcqComment.setSizePolicy(sizePolicy)
+        self.plainTextEditAcqComment.setMinimumSize(QtCore.QSize(0, 45))
+        self.plainTextEditAcqComment.setBaseSize(QtCore.QSize(0, 45))
+        self.plainTextEditAcqComment.setObjectName("plainTextEditAcqComment")
+        self.verticalLayout_2.addWidget(self.plainTextEditAcqComment)
+        self.label_2 = QtWidgets.QLabel(self.groupBoxSampleName)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.label_2.sizePolicy().hasHeightForWidth())
+        self.label_2.setSizePolicy(sizePolicy)
+        self.label_2.setObjectName("label_2")
+        self.verticalLayout_2.addWidget(self.label_2)
+        self.lineEditAcqPath = QtWidgets.QLineEdit(self.groupBoxSampleName)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.lineEditAcqPath.sizePolicy().hasHeightForWidth())
+        self.lineEditAcqPath.setSizePolicy(sizePolicy)
+        self.lineEditAcqPath.setReadOnly(True)
+        self.lineEditAcqPath.setObjectName("lineEditAcqPath")
+        self.verticalLayout_2.addWidget(self.lineEditAcqPath)
+        self.verticalLayout.addWidget(self.groupBoxSampleName)
+        self.pushButtonStartAcq = QtWidgets.QPushButton(FormAcqRun)
+        self.pushButtonStartAcq.setObjectName("pushButtonStartAcq")
+        self.verticalLayout.addWidget(self.pushButtonStartAcq)
+
+        self.retranslateUi(FormAcqRun)
+        QtCore.QMetaObject.connectSlotsByName(FormAcqRun)
+
+    def retranslateUi(self, FormAcqRun):
+        _translate = QtCore.QCoreApplication.translate
+        FormAcqRun.setWindowTitle(_translate("FormAcqRun", "Form"))
+        self.groupBoxSampleName.setTitle(_translate("FormAcqRun", "Sample"))
+        self.label.setText(_translate("FormAcqRun", "Comment"))
+        self.label_2.setText(_translate("FormAcqRun", "Folder"))
+        self.pushButtonStartAcq.setText(_translate("FormAcqRun", "Start\n"
+"data collection"))
+
