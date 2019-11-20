@@ -441,6 +441,7 @@ class GridTranslateState(BaseGridState, MouseKeyboardState):
         BaseGridState.__init__(self, grid_widget)
         MouseKeyboardState.__init__(self, False)
         self.translated_pos = glm.vec2(0, 0)
+        self.grid_controller = grid_widget.grid_controller
 
     def inject_event(self, source, event):
         MouseKeyboardState.injectEvent(self, source, event)
@@ -450,7 +451,7 @@ class GridTranslateState(BaseGridState, MouseKeyboardState):
         return False
 
     def on_mouse_moved(self, oldPos, newPos, delta):
-        if self.grid_widget.grid_controller.isEmpty():
+        if self.grid_controller.isEmpty():
             return
         if self.is_btn_pressed(GridTranslateState.MOUSE_BUTTON):
             self.translated_pos += delta
@@ -463,15 +464,15 @@ class GridTranslateState(BaseGridState, MouseKeyboardState):
         if self.grid_widget.grid_controller.isEmpty():
             return
         if btn == GridTranslateState.MOUSE_BUTTON and self.translated_pos != glm.vec2(0, 0):
-            transform = QTransform()
-            translatedMu = GridConstants.to_mu(self.translated_pos)
-            transform.translate(translatedMu.x, translatedMu.y)
-            rect_points2 = [QPointF(x.x, x.y) * transform for x in self.grid_widget.grid_controller.bounding_points]
-            rect_points = [glm.vec2(x.x(), x.y()) for x in rect_points2]
+            translated_mu = GridConstants.to_mu(self.translated_pos)
+            transform = QTransform().translate(translated_mu.x, translated_mu.y)
+            bounding_points = self.grid_controller.bounding_points
+            rect_points_qt = [QPointF(x.x, x.y) * transform for x in bounding_points]
+            rect_points = [glm.vec2(x.x(), x.y()) for x in rect_points_qt]
             if glm.distance(rect_points[0], rect_points[1]) <= 0.1 or glm.distance(rect_points[0], rect_points[2]) <= 0.1:
                 return
-            chip = self.grid_widget.chip_registry.get_chip(self.grid_widget.grid_controller.selected_chip_name.get())
-            self.grid_widget.grid_controller.update_generator(ChipPointGenerator(rect_points, chip))
+            chip = self.grid_widget.chip_registry.get_chip(self.grid_controller.selected_chip_name.get())
+            self.grid_controller.update_generator(ChipPointGenerator(rect_points, chip))
             self.grid_widget.state_data["tmpPointTransform"] = QTransform()
             self.translated_pos = glm.vec2(0, 0)
             self.grid_widget.update()
@@ -1312,7 +1313,6 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         #self.timer.start(1000 / 20)  # in fps
         pass
 
-    # the main loop event tick, executed from the qt main thread
     def update_tick(self):
         #todo: we actually only need this if the grid is moving, a better idea would be to
         # check if the motor is moving and only then start another update timer, this way we would only
@@ -1403,12 +1403,20 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         self.axis_controller.set_position(GridAxisNames.AXIS_Y, position.y)
 
     def map_view_to_sample(self, posInView):
-        posInView = posInView / self.image_scaling_ratio
-        posSample = GridConstants.to_mu(posInView)
-        return posSample - self.query_sample_position()
+        t = self.state_data["sampleTransform"] * self.state_data["tmpPointTransform"] * self.state_data["viewTransform"]
+        inv, ok = t.inverted()
+        if not ok:
+            raise Exception("oh shit, invalid transform!")
+        qp = QPointF(posInView.x, posInView.y) * inv
+        return glm.vec2(qp.x(), qp.y())
+        #posInView = posInView / self.image_scaling_ratio
+        #posSample = GridConstants.to_mu(posInView)
+        #return posSample - self.query_sample_position()
 
-    def map_sample_to_view(self, posInSample):
-        return GridConstants.to_pixel(posInSample + self.query_sample_position()) * self.image_scaling_ratio
+    def map_sample_to_view(self, point):
+        t = self.state_data["sampleTrasform"] * self.state_data["tmpPointTransform"] * self.state_data["viewTransform"]
+        return point * t
+        # return GridConstants.to_pixel(posInSample + self.query_sample_position()) * self.image_scaling_ratio
 
     def move_position_to_view_center(self, position, offset=glm.vec2(0, 0)):
         target_pos = self.map_view_to_sample(self.scaled_image_size / 2)
@@ -1465,6 +1473,8 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         #TODO: set clipping rect to the actual image area
         #TODO: remove all those image scaling size things, they are unused now
         #TODO: fix rotation and size change states
+        #TODO: fix sample to screen and screen to sample function to use view thingi nao!
+        #TODO: draw beam size and hole zize with a fixed line width if desired
         self.gridPainter.draw_onaxis(view_transform, painter, self.image)
         GridPainter.draw_points(model_view_transform, painter, pointsMu, metaInfo, beam_size)
         GridPainter.draw_boundingbox_with_handles(model_view_transform, painter, self.grid_controller.bounding_points)
