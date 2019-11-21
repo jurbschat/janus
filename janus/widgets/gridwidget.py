@@ -1028,8 +1028,12 @@ class ShowBeamProfileState(BaseGridState, MouseKeyboardState):
         self.profile = None
         self.image = None
         global_event_hub().register(EHEventType.ALIGN_BEAMOFFSET_TO_BEAMPROFILE, self.align_to_profile)
+        self.image_changed(self.grid_widget.image)
+        self.grid_widget.update()
 
     def __del__(self):
+        print("beamprofile deleted")
+        self.grid_widget.update()
         global_event_hub().unregister(self.align_to_profile)
 
     def align_to_profile(self, event):
@@ -1560,9 +1564,7 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         screen_to_sample_transform = self.screen_to_sample_transform()
 
         #TODO: set clipping rect to the actual image area
-        #TODO: camera movement sometimes looses the initial position (seems to ber elated to other states catching the event)
         #TODO: beamlign work even after beamligne state is "hidden"...
-        #TODO: where does the grid placing lag come from?
         self.grid_painter.draw_onaxis(view_transform, painter, self.image)
         GridPainter.draw_points(screen_to_sample_transform, painter, pointsMu, metaInfo, beam_size)
         GridPainter.draw_boundingbox_with_handles(screen_to_sample_transform, painter, self.grid_controller.bounding_points)

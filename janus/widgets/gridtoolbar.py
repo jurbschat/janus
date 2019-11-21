@@ -115,7 +115,7 @@ class GridToolBar(QObject, Object):
             self.ui.toolbarFrame.layout().addWidget(self.toolBar)
 
     def action_executed(self, grid_widget_action):
-        print("action: {}".format(grid_widget_action))
+        #print("action: {}".format(grid_widget_action))
         grid_action = self.actionMapping[grid_widget_action]
         checked = grid_action.isChecked()
         self.gridWidget.change_grid_state(grid_widget_action, checked)
