@@ -1088,21 +1088,38 @@ class ShowBeamProfileState(BaseGridState, MouseKeyboardState):
         painter.fillRect(rect_profile_y, graph_bg_color)
 
         # draw graph lines
+        # drawing individual segements is quite slow so we
+        # build a list of all points along the profile direction
+        # and then build qlinef lists out if them, these qlinef lists
+        # can be drawn with a single call
         painter.setPen(QPen(Qt.yellow, 1, Qt.SolidLine))
-        step = img_size.x / len(profile_line_x)
-        for i, (p0, p1) in enumerate(zip(profile_line_x, profile_line_x[1:])):
-            y0 = (img_size.y - 1) - (p0 / 255) * graph_height
-            y1 = (img_size.y - 1) - (p1 / 255) * graph_height
-            l0 = glm.vec2(step * i, y0)
-            l1 = glm.vec2(step * (i + 1), y1)
-            painter.drawLines(QLineF(l0.x, l0.y, l1.x, l1.y))
-        step = img_size.y / len(profile_line_y)
-        for i, (p0, p1) in enumerate(zip(profile_line_y, profile_line_y[1:])):
-            x0 = (img_size.x - 1) - (p0 / 255) * graph_width
-            x1 = (img_size.x - 1) - (p1 / 255) * graph_width
-            l0 = glm.vec2(x0, step * i)
-            l1 = glm.vec2(x1, step * (i + 1))
-            painter.drawLines(QLineF(l0.x, l0.y, l1.x, l1.y))
+
+        transform_x = QTransform()
+        transform_x.translate(0, img_size.y - 1)
+        transform_x.scale(1, -1 * graph_height / 255)
+        transform_x = transform_x * view_transform
+
+        painter.save()
+        painter.setTransform(transform_x)
+        x = np.arange(0, len(profile_line_x), 1)
+        points = np.column_stack((x, profile_line_x))
+        lines = [QLineF(QPointF(p0[0], p0[1]), QPointF(p1[0], p1[1])) for (p0, p1) in zip(points, points[1:])]
+        painter.drawLines(lines)
+        painter.restore()
+
+        transform_y = QTransform()
+        transform_y.translate(img_size.x - 1, 0)
+        transform_y.scale(1 * graph_width / 255, 1)
+        transform_y.rotate(90)
+        transform_y = transform_y * view_transform
+
+        painter.save()
+        painter.setTransform(transform_y)
+        y = np.arange(0, len(profile_line_y), 1)
+        points = np.column_stack((y, profile_line_y))
+        lines = [QLineF(QPointF(p0[0], p0[1]), QPointF(p1[0], p1[1])) for (p0, p1) in zip(points, points[1:])]
+        painter.drawLines(lines)
+        painter.restore()
 
         # draw beam borders
         rect_fwhf_x = QRect(below_x * ratio, img_size.y - graph_height, (above_x - below_x) * ratio, graph_height)
@@ -1356,10 +1373,6 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         self.grid_controller.selected_chip_name.unregister(self.on_chip_changed)
 
     def get_initial_states(self):
-        # state preceedance
-        # move_view, move_poi
-        # BASE:     [passive: beamprofile] <- translate <- change_dimension <- rotate <- move_sample
-        # EXTENDED: [place_chip | place_threepoint] <- move_view <- move_poi
         return [MoveGridState(self), ChangeGridDimensionState(self), RotateGridState(self), CenterPointInViewState(self)]
 
     def start_update_tick(self):
