@@ -62,8 +62,8 @@ class GridToolBar(QObject, Object):
         pm1.triggered.connect(lambda: self.action_executed(GridWidgetAction.PLACE_BY_LINE))
         self.toolBar.addAction(pm1)
 
-        pm2 = create_action(placeSizeIcon, "Place grid by extend", GridWidgetAction.PLACE_BY_XY, True, self.modifyGridActionGroup)
-        pm2.triggered.connect(lambda: self.action_executed(GridWidgetAction.PLACE_BY_XY))
+        pm2 = create_action(placeSizeIcon, "Place grid by extend", GridWidgetAction.PLACE_BY_THREE_POINT, True, self.modifyGridActionGroup)
+        pm2.triggered.connect(lambda: self.action_executed(GridWidgetAction.PLACE_BY_THREE_POINT))
         self.toolBar.addAction(pm2)
 
         #pm3 = create_action(placeFreeIcon, "Manualy place grid", GridWidgetAction.PLACE_BY_FREE, True, self.modifyGridActionGroup)

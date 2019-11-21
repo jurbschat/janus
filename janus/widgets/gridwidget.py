@@ -74,7 +74,7 @@ class GridHelpers:
 class GridWidgetAction:
     TRANSFORM = 1
     PLACE_BY_LINE = 2
-    PLACE_BY_XY = 3
+    PLACE_BY_THREE_POINT = 3
     PLACE_BY_FREE = 4
     SHOW_BEAMPROFILE = 5
     TAKE_SNAPSHOT = 6
@@ -336,9 +336,60 @@ class BeamProfileCalculator:
                 max_y, (above_y - below_y), below_y, above_y,
                 profile_line_x, profile_line_y)
 
+
+class GridTransform:
+    SAMPLE_SCALING = 0
+    VIEW = 1
+    POINT_TRANSFORM = 2
+    SAMPLE_POSITION = 3
+
+
+class GridStateData:
+    def __init__(self, view_zoom_factor, view_zoom_step, view_translate, transforms):
+        self.view_zoom_factor = view_zoom_factor
+        self.view_zoom_step = view_zoom_step
+        self.view_translate = view_translate
+        self.transforms = transforms
+
 #
 # grid classes
 #
+
+# BASE:     [passive: beamprofile] <- translate <- change_dimension <- rotate <- move_sample
+# EXTENDED: [place_chip | place_threepoint] <- move_view <- move_poi
+class StateUpdatePriority:
+    SHOW_BEAMPROFILE = 0
+    TRANSLATE_STATE = 1
+    CHANGE_DIMENSION = 2
+    ROTATE_STATE = 3
+    CENTER_POSITION_IN_VIEW = 4
+    PLACE_CHIP_STATE = 5
+    PLACE_THREE_POINT_STATE = 6
+    MOVE_VIEW = 7
+    MOVE_BY_POI = 8
+
+    input = {
+        SHOW_BEAMPROFILE: 0,
+        TRANSLATE_STATE: 1,
+        CHANGE_DIMENSION: 2,
+        ROTATE_STATE: 3,
+        CENTER_POSITION_IN_VIEW: 4,
+        PLACE_CHIP_STATE: 5,
+        PLACE_THREE_POINT_STATE: 6,
+        MOVE_VIEW: 7,
+        MOVE_BY_POI: 8
+    }
+    paint = {
+        SHOW_BEAMPROFILE: 0,
+        TRANSLATE_STATE: 1,
+        CHANGE_DIMENSION: 2,
+        ROTATE_STATE: 3,
+        CENTER_POSITION_IN_VIEW: 4,
+        PLACE_CHIP_STATE: 5,
+        PLACE_THREE_POINT_STATE: 6,
+        MOVE_VIEW: 7,
+        MOVE_BY_POI: 8
+    }
 
 class BaseGridState:
     def __init__(self, grid_widget):
@@ -733,7 +784,7 @@ class GridChangeDimensionState(BaseGridState, MouseKeyboardState, FeatureSelecto
         if not self.is_valid_handle(self.active_handle):
             return
         if self.bounding_points is not None:
-            t = self.grid_widget.make_combined_transform()
+            t = self.grid_widget.screen_to_sample_transform()
             GridPainter.draw_boundingbox_with_handles(t, painter, self.bounding_points)
 
 
@@ -757,7 +808,7 @@ class GridMoveSampleState(BaseGridState, MouseKeyboardState):
             return
         mouse_pos = self.get_down_pos(btn)
         target = self.grid_widget.map_screen_to_sample(mouse_pos)
-        self.grid_widget.move_position_to_view_center(target)
+        self.grid_widget.move_sample_position_to_view_center(target)
 
     def update_priority(self):
         return 1
@@ -825,7 +876,7 @@ class GridPlacerByChipState(BaseGridState, MouseKeyboardState):
         return bounding_points
 
     def do_paint(self, view_transform, painter):
-        model_view = self.grid_widget.make_combined_transform()
+        model_view = self.grid_widget.screen_to_sample_transform()
         if len(self.points) == 0:
             asSamplePos = self.grid_widget.map_screen_to_sample(self.mousePos)
             GridPainter.draw_point(model_view, painter, asSamplePos, self.handleSize, Qt.yellow, True)
@@ -919,7 +970,7 @@ class GridPlacerByThreePointState(BaseGridState, MouseKeyboardState):
 
     def do_paint(self, view_transform, painter):
         # draw line from first point to mouse
-        model_view = self.grid_widget.make_combined_transform()
+        model_view = self.grid_widget.screen_to_sample_transform()
         if len(self.points) == 1:
             asSamplePos = self.grid_widget.map_screen_to_sample(self.mousePos)
             GridPainter.draw_line(model_view, painter, self.points[0], asSamplePos, Qt.red)
@@ -1203,15 +1254,15 @@ class PoiMovementState(BaseGridState, MouseKeyboardState):
     def on_click(self, btn, pos):
         if btn == PoiMovementState.MOUSE_BUTTON and self.active_grid_button != -1:
             if self.grid_widget.grid_controller.isEmpty():
-                print("no grid set, can not move to corners")
                 return
             selected_button = self.button_templates[self.active_grid_button]
             normalized_grid_position = selected_button[0]
             center_position = self.map_norm_to_grid_bb(glm.vec2(normalized_grid_position))
-            self.grid_widget.move_position_to_view_center(center_position)
+            self.grid_widget.move_sample_position_to_view_center(center_position)
 
-    def on_mouse_moved(self, oldPos, newPos, delta):
-        new_btn = self.find_button_for_position(self.mousePos)
+    def on_mouse_moved(self, new_pos, newPos, delta):
+        pos = self.grid_widget.map_screen_to_view(new_pos)
+        new_btn = self.find_button_for_position(pos)
         if new_btn != self.active_grid_button:
             self.grid_widget.unsetCursor()
             self.active_grid_button = new_btn
@@ -1240,20 +1291,9 @@ class PoiMovementState(BaseGridState, MouseKeyboardState):
     def draw_priority(self):
         return 2
 
-
-class GridTransform:
-    SAMPLE_SCALING = 0
-    VIEW = 1
-    POINT_TRANSFORM = 2
-    SAMPLE_POSITION = 3
-
-class GridStateData:
-    def __init__(self, view_zoom_factor, view_zoom_step, view_translate, transforms):
-        self.view_zoom_factor = view_zoom_factor
-        self.view_zoom_step = view_zoom_step
-        self.view_translate = view_translate
-        self.transforms = transforms
-
+#
+# actual qwidget
+#
 
 class GridWidget(QWidget, Object, MouseKeyboardState):
 
@@ -1288,7 +1328,11 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         self.grid_controller.selected_chip_name.unregister(self.on_chip_changed)
 
     def get_initial_states(self):
-        return [GridTranslateState(self), GridRotateState(self), GridChangeDimensionState(self), GridMoveSampleState(self)]
+        # state preceedance
+        # move_view, move_poi
+        # BASE:     [passive: beamprofile] <- translate <- change_dimension <- rotate <- move_sample
+        # EXTENDED: [place_chip | place_threepoint] <- move_view <- move_poi
+        return [GridTranslateState(self), GridChangeDimensionState(self), GridRotateState(self), GridMoveSampleState(self)]
 
     def start_update_tick(self):
         last_pos = self.query_sample_position()
@@ -1377,22 +1421,35 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         self.axis_controller.set_position(GridAxisNames.AXIS_X, position.x)
         self.axis_controller.set_position(GridAxisNames.AXIS_Y, position.y)
 
-    def make_combined_transform(self):
+    def view_to_sample_transform(self):
+        return self.transforms[GridTransform.POINT_TRANSFORM] * \
+               self.transforms[GridTransform.SAMPLE_POSITION] * \
+               self.transforms[GridTransform.SAMPLE_SCALING]
+
+    def screen_to_sample_transform(self):
         return self.transforms[GridTransform.POINT_TRANSFORM] * \
                self.transforms[GridTransform.SAMPLE_POSITION] * \
                self.transforms[GridTransform.SAMPLE_SCALING] * \
                self.transforms[GridTransform.VIEW]
 
-    def map_screen_to_sample(self, posInView):
-        t = self.make_combined_transform()
+    def map_screen_to_sample(self, point):
+        t = self.screen_to_sample_transform()
         inv, ok = t.inverted()
         if not ok:
-            raise Exception("oh shit, invalid transform!")
-        qp = QPointF(posInView.x, posInView.y) * inv
+            print("oh shit, invalid transform, using identity!")
+        qp = QPointF(point.x, point.y) * inv
+        return glm.vec2(qp.x(), qp.y())
+
+    def map_view_to_sample(self, point):
+        t = self.view_to_sample_transform()
+        inv, ok = t.inverted()
+        if not ok:
+            print("oh shit, invalid transform, using identity!")
+        qp = QPointF(point.x, point.y) * inv
         return glm.vec2(qp.x(), qp.y())
 
     def map_sample_to_screen(self, point):
-        t = self.make_combined_transform()
+        t = self.screen_to_sample_transform()
         qp = QPointF(point.x, point.y) * t
         return glm.vec2(qp.x(), qp.y())
 
@@ -1400,7 +1457,7 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         t = self.transforms[GridTransform.VIEW]
         inv, ok = t.inverted()
         if not ok:
-            raise Exception("oh shit, invalid transform!")
+            print("oh shit, invalid transform, using identity!")
         qp = QPointF(point.x, point.y) * inv
         return glm.vec2(qp.x(), qp.y())
 
@@ -1409,8 +1466,8 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         qp = QPointF(point.x, point.y) * t
         return glm.vec2(qp.x(), qp.y())
 
-    def move_position_to_view_center(self, position, offset=glm.vec2(0, 0)):
-        target_pos = self.map_screen_to_sample(self.get_image_size() / 2)
+    def move_sample_position_to_view_center(self, position, offset=glm.vec2(0, 0)):
+        target_pos = self.map_view_to_sample(self.get_image_size() / 2)
         target_move = (target_pos + offset) - position
         new_pos = self.query_sample_position() + target_move
         self.set_sample_position(new_pos)
@@ -1433,7 +1490,6 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
             self.remove_states_by_type([GridTransformViewState])
 
     def paintEvent(self, event):
-        print(time.time())
         if self.image is None:
             return
         painter = QPainter(self)
@@ -1454,43 +1510,19 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         beam_size = self.grid_controller.beam_size.get()
         beam_offset = self.grid_controller.beam_offset.get()
 
-        #sample_transform = QTransform()
-        #sample_transform.translate(sample_offset.x, sample_offset.y)
-        #sample_transform.scale(GridConstants.muToPixelRatio, GridConstants.muToPixelRatio)
-        #self.state_data["sampleTransform"] = sample_transform
-        #self.transforms[GridTransform.MODEL] = QTransform().translate(GridConstants.muToPixelRatio, GridConstants.muToPixelRatio)
-
         self.transforms[GridTransform.SAMPLE_POSITION] = QTransform().translate(sample_offset.x, sample_offset.y)
+
         view_transform = self.transforms[GridTransform.VIEW]
         sample_scale = self.transforms[GridTransform.SAMPLE_SCALING]
-        model_view_projection_transform = self.make_combined_transform()
-
-        '''view_transform = QTransform()
-        view_transform.translate(500, 500)
-        view_transform.rotate(45)
-        view_transform.scale(0.25, 0.25)
-        self.grid_painter.draw_onaxis(view_transform, painter, self.image)
-
-        t2 = QTransform()
-        t2.translate(1500, 0)
-        t2.rotate(-90)
-        v2 = t2 * view_transform
-        self.grid_painter.draw_onaxis(v2, painter, self.image)
-
-        t3 = QTransform()
-        t3.translate(1500, 0)
-        t3.rotate(-90)
-        v3 = t3 * t2 * view_transform
-        self.grid_painter.draw_onaxis(v3, painter, self.image)'''
+        screen_to_sample_transform = self.screen_to_sample_transform()
 
         #TODO: set clipping rect to the actual image area
         #TODO: camera movement sometimes looses the initial position (seems to ber elated to other states catching the event)
-        #TODO: fix move to center function, beamsize drawing
         #TODO: beamlign work even after beamligne state is "hidden"...
         #TODO: where does the grid placing lag come from?
         self.grid_painter.draw_onaxis(view_transform, painter, self.image)
-        GridPainter.draw_points(model_view_projection_transform, painter, pointsMu, metaInfo, beam_size)
-        GridPainter.draw_boundingbox_with_handles(model_view_projection_transform, painter, self.grid_controller.bounding_points)
+        GridPainter.draw_points(screen_to_sample_transform, painter, pointsMu, metaInfo, beam_size)
+        GridPainter.draw_boundingbox_with_handles(screen_to_sample_transform, painter, self.grid_controller.bounding_points)
         GridPainter.draw_beam_position(view_transform,
                                        self.get_image_size(),
                                        painter,
@@ -1523,7 +1555,7 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         options = {
             GridWidgetAction.TRANSFORM: self.handle_action_transform,
             GridWidgetAction.PLACE_BY_LINE: self.handle_place_by_line,
-            GridWidgetAction.PLACE_BY_XY: self.handle_place_by_xy,
+            GridWidgetAction.PLACE_BY_THREE_POINT: self.handle_place_by_three_point,
             GridWidgetAction.SHOW_BEAMPROFILE: self.handle_show_beamprofile,
             GridWidgetAction.TAKE_SNAPSHOT: self.handle_action_snapshot,
             GridWidgetAction.CLEAR_GRID: self.handle_action_clear,
@@ -1548,9 +1580,11 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
 
     def handle_place_by_line(self, checked):
         self.add_state(GridPlacerByChipState(self))
+        self.remove_states_by_type([GridPlacerByThreePointState])
 
-    def handle_place_by_xy(self, checked):
+    def handle_place_by_three_point(self, checked):
         self.add_state(GridPlacerByThreePointState(self))
+        self.remove_states_by_type([GridPlacerByChipState])
 
     def handle_action_snapshot(self, checked):
         name = QFileDialog.getSaveFileName(parent=self, caption='Save File', directory="snapshot.png",
