@@ -882,6 +882,7 @@ class BuildGridByChipState(BaseGridState, MouseKeyboardState):
         bounding_points = self.build_boundingbox_from_points(self.points[0], self.points[1], chip.chip_size)
         self.grid_widget.grid_controller.update_generator(ChipPointGenerator(bounding_points, chip))
         self.points = []
+        self.grid_widget.update()
         self.grid_widget.remove_states([self], GridWidgetAction.TRANSFORM)
 
     def build_boundingbox_from_points(self, one, two, chip_size):
@@ -986,6 +987,7 @@ class BuildGridByThreePointState(BaseGridState, MouseKeyboardState):
         bounding_points = [p0, p1, p2, p3]
         self.grid_widget.grid_controller.update_generator(ChipPointGenerator(bounding_points, chip))
         self.points = []
+        self.grid_widget.update()
         self.grid_widget.remove_states([self], GridWidgetAction.TRANSFORM)
 
     def do_paint(self, view_transform, painter):
