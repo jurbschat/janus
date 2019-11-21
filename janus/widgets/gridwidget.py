@@ -358,38 +358,40 @@ class GridStateData:
 # BASE:     [passive: beamprofile] <- translate <- change_dimension <- rotate <- move_sample
 # EXTENDED: [place_chip | place_threepoint] <- move_view <- move_poi
 class StateUpdatePriority:
+
     SHOW_BEAMPROFILE = 0
-    TRANSLATE_STATE = 1
-    CHANGE_DIMENSION = 2
-    ROTATE_STATE = 3
+    MOVE_GRID = 1
+    CHANGE_GRID_DIMENSION = 2
+    ROTATE_GRID_STATE = 3
     CENTER_POSITION_IN_VIEW = 4
-    PLACE_CHIP_STATE = 5
-    PLACE_THREE_POINT_STATE = 6
-    MOVE_VIEW = 7
-    MOVE_BY_POI = 8
+    PLACE_CHIP = 5
+    PLACE_THREE_POINT = 6
+    CHANGE_CAMERA = 7
+    CENTER_9PATCH_ANCHOR = 8
 
     input = {
         SHOW_BEAMPROFILE: 0,
-        TRANSLATE_STATE: 1,
-        CHANGE_DIMENSION: 2,
-        ROTATE_STATE: 3,
+        MOVE_GRID: 1,
+        CHANGE_GRID_DIMENSION: 2,
+        ROTATE_GRID_STATE: 3,
         CENTER_POSITION_IN_VIEW: 4,
-        PLACE_CHIP_STATE: 5,
-        PLACE_THREE_POINT_STATE: 6,
-        MOVE_VIEW: 7,
-        MOVE_BY_POI: 8
+        PLACE_CHIP: 5,
+        PLACE_THREE_POINT: 6,
+        CHANGE_CAMERA: 8,
+        CENTER_9PATCH_ANCHOR: 7
     }
     paint = {
         SHOW_BEAMPROFILE: 0,
-        TRANSLATE_STATE: 1,
-        CHANGE_DIMENSION: 2,
-        ROTATE_STATE: 3,
+        MOVE_GRID: 1,
+        CHANGE_GRID_DIMENSION: 2,
+        ROTATE_GRID_STATE: 3,
         CENTER_POSITION_IN_VIEW: 4,
-        PLACE_CHIP_STATE: 5,
-        PLACE_THREE_POINT_STATE: 6,
-        MOVE_VIEW: 7,
-        MOVE_BY_POI: 8
+        PLACE_CHIP: 5,
+        PLACE_THREE_POINT: 6,
+        CHANGE_CAMERA: 8,
+        CENTER_9PATCH_ANCHOR: 7
     }
+
 
 class BaseGridState:
     def __init__(self, grid_widget):
@@ -404,10 +406,10 @@ class BaseGridState:
     def image_changed(self, image):
         pass
 
-    def update_priority(self):
+    def input_priority(self):
         return 0
 
-    def draw_priority(self):
+    def paint_priority(self):
         return 0
 
 
@@ -417,28 +419,11 @@ class MouseKeyboardState:
         self.downMap = {}
         self.keyMap = {}
         self.btnMap = {}
-        self.mousePos = glm.vec2(0, 0)
+        self._mouse_pos = glm.vec2(0, 0)
         self.exclusiveCapture = exclusiveCapture
 
     def injectEvent(self, source, event):
-        if event.type() == QEvent.MouseMove:
-            oldPos = self.mousePos
-            self.mousePos = glm.vec2(event.pos().x(), event.pos().y())
-            if oldPos != self.mousePos:
-                self.on_mouse_moved(oldPos, self.mousePos, self.mousePos - oldPos)
-                return self.exclusiveCapture
-        elif event.type() == QEvent.MouseButtonPress:
-            self.downMap[event.button()] = self.mousePos
-            self.btnMap[event.button()] = True
-            self.on_mouse_down(event.button())
-            return self.exclusiveCapture
-        elif event.type() == QEvent.MouseButtonRelease:
-            self.btnMap[event.button()] = False
-            self.on_mouse_release(event.button())
-            #if self.mousePos == self.get_down_pos(event.button()):
-            self.on_click(event.button(), self.get_down_pos(event.button()))
-            return self.exclusiveCapture
-        elif event.type() == QEvent.KeyPress:
+        if event.type() == QEvent.KeyPress:
             self.keyMap[event.key()] = True
             self.on_key_down(event.key())
             return self.exclusiveCapture
@@ -446,8 +431,24 @@ class MouseKeyboardState:
             self.keyMap[event.key()] = False
             self.on_key_up(event.key())
             return self.exclusiveCapture
+        elif event.type() == QEvent.MouseButtonPress:
+            self.downMap[event.button()] = self._mouse_pos
+            self.btnMap[event.button()] = True
+            self.on_mouse_down(event.button(), self._mouse_pos)
+            return self.exclusiveCapture
+        elif event.type() == QEvent.MouseButtonRelease:
+            self.btnMap[event.button()] = False
+            self.on_mouse_release(event.button(), self._mouse_pos)
+            self.on_click(event.button(), self.get_down_pos(event.button()))
+            return self.exclusiveCapture
+        elif event.type() == QEvent.MouseMove:
+            old_pos = self._mouse_pos
+            self._mouse_pos = glm.vec2(event.pos().x(), event.pos().y())
+            if old_pos != self._mouse_pos:
+                self.on_mouse_moved(old_pos, self._mouse_pos, self._mouse_pos - old_pos)
+                return self.exclusiveCapture
         elif event.type() == QEvent.Wheel:
-            self.on_mouse_wheel(event.angleDelta())
+            self.on_mouse_wheel(event.angleDelta(), self._mouse_pos)
         return False
 
     def set_exclusive_capture(self, value):
@@ -471,6 +472,9 @@ class MouseKeyboardState:
             return self.downMap[btn]
         return glm.vec2(0, 0)
 
+    def get_mouse_pos(self):
+        return self._mouse_pos
+
     def on_key_down(self, key):
         pass
 
@@ -480,20 +484,20 @@ class MouseKeyboardState:
     def on_click(self, btn, pos):
         pass
 
-    def on_mouse_moved(self, oldPos, newPos, delta):
+    def on_mouse_moved(self, old_pos, new_pos, delta):
         pass
 
-    def on_mouse_wheel(self, delta):
+    def on_mouse_wheel(self, delta, mouse_pos):
         pass
 
-    def on_mouse_down(self, btn):
+    def on_mouse_down(self, btn, mouse_pos):
         pass
 
-    def on_mouse_release(self, btn):
+    def on_mouse_release(self, btn, mouse_pos):
         pass
 
 
-class GridTranslateState(BaseGridState, MouseKeyboardState):
+class MoveGridState(BaseGridState, MouseKeyboardState):
 
     MOUSE_BUTTON = Qt.LeftButton
 
@@ -506,15 +510,15 @@ class GridTranslateState(BaseGridState, MouseKeyboardState):
     def inject_event(self, source, event):
         MouseKeyboardState.injectEvent(self, source, event)
         if event.type() == QEvent.MouseButtonPress or event.type() == QEvent.MouseButtonRelease:
-            if event.button() == GridTranslateState.MOUSE_BUTTON:
+            if event.button() == MoveGridState.MOUSE_BUTTON:
                 return True
         return False
 
     def on_mouse_moved(self, old_pos, new_pos, delta):
         if self.grid_controller.isEmpty():
             return
-        if self.is_btn_pressed(GridTranslateState.MOUSE_BUTTON):
-            down_pos = self.get_down_pos(GridTranslateState.MOUSE_BUTTON)
+        if self.is_btn_pressed(MoveGridState.MOUSE_BUTTON):
+            down_pos = self.get_down_pos(MoveGridState.MOUSE_BUTTON)
             down_pos = self.grid_widget.map_screen_to_sample(down_pos)
             current_pos = self.grid_widget.map_screen_to_sample(new_pos)
             self.translated_pos = current_pos - down_pos
@@ -524,10 +528,10 @@ class GridTranslateState(BaseGridState, MouseKeyboardState):
             self.grid_widget.state_data.transforms[GridTransform.POINT_TRANSFORM] = transform
             self.grid_widget.update()
 
-    def on_mouse_release(self, btn):
+    def on_mouse_release(self, btn, pos):
         if self.grid_widget.grid_controller.isEmpty():
             return
-        if btn == GridTranslateState.MOUSE_BUTTON and self.translated_pos != glm.vec2(0, 0):
+        if btn == MoveGridState.MOUSE_BUTTON and self.translated_pos != glm.vec2(0, 0):
             bounding_points = self.grid_controller.bounding_points
             rect_points = [x + self.translated_pos for x in bounding_points]
             if glm.distance(rect_points[0], rect_points[1]) <= 0.1 or glm.distance(rect_points[0], rect_points[2]) <= 0.1:
@@ -537,6 +541,12 @@ class GridTranslateState(BaseGridState, MouseKeyboardState):
             self.grid_widget.state_data.transforms[GridTransform.POINT_TRANSFORM] = QTransform()
             self.translated_pos = glm.vec2(0, 0)
             self.grid_widget.update()
+
+    def input_priority(self):
+        return StateUpdatePriority.input[StateUpdatePriority.MOVE_GRID]
+
+    def paint_priority(self):
+        return StateUpdatePriority.paint[StateUpdatePriority.MOVE_GRID]
 
 
 class FeatureSelectorState:
@@ -582,7 +592,7 @@ class FeatureSelectorState:
         return math.sqrt(dist)
 
 
-class GridRotateState(BaseGridState, MouseKeyboardState, FeatureSelectorState):
+class RotateGridState(BaseGridState, MouseKeyboardState, FeatureSelectorState):
 
     MOUSE_BUTTON = Qt.LeftButton
 
@@ -624,10 +634,10 @@ class GridRotateState(BaseGridState, MouseKeyboardState, FeatureSelectorState):
 
     def inject_event(self, source, event):
         MouseKeyboardState.injectEvent(self, source, event)
-        if event.type() == QEvent.MouseButtonPress or event.type() == QEvent.MouseButtonRelease:
-            handle = self.select_target(self.mousePos)
+        if event.type() in(QEvent.MouseButtonPress,  QEvent.MouseButtonRelease):
+            handle = self.select_target(self.get_mouse_pos())
             if self.is_valid_handle(handle):
-                if event.button() == GridRotateState.MOUSE_BUTTON:
+                if event.button() == RotateGridState.MOUSE_BUTTON:
                     return True
         return False
 
@@ -639,10 +649,10 @@ class GridRotateState(BaseGridState, MouseKeyboardState, FeatureSelectorState):
             return True
         return False
 
-    def on_mouse_down(self, btn):
-        if btn != GridRotateState.MOUSE_BUTTON:
+    def on_mouse_down(self, btn, pos):
+        if btn != RotateGridState.MOUSE_BUTTON:
             return
-        handle = self.select_target(self.mousePos)
+        handle = self.select_target(pos)
         if not self.is_valid_handle(handle):
             return
         self.active_handle = handle
@@ -653,14 +663,14 @@ class GridRotateState(BaseGridState, MouseKeyboardState, FeatureSelectorState):
         self.rotation_origin_screen = self.grid_widget.map_sample_to_screen(self.rotation_origin_sample)
 
     def on_mouse_moved(self, old_pos, new_pos, delta):
-        handle = self.select_target(self.mousePos)
+        handle = self.select_target(new_pos)
         if handle is not None:
             self.grid_widget.setCursor(self.cursor_9patch_mapping[handle])
         else:
             self.grid_widget.unsetCursor()
         if self.grid_controller.isEmpty() or not self.is_valid_handle(self.active_handle):
             return
-        down_pos = self.get_down_pos(GridRotateState.MOUSE_BUTTON)
+        down_pos = self.get_down_pos(RotateGridState.MOUSE_BUTTON)
         current_pos = new_pos
         v0 = self.rotation_origin_screen - down_pos
         v1 = self.rotation_origin_screen - current_pos
@@ -672,8 +682,8 @@ class GridRotateState(BaseGridState, MouseKeyboardState, FeatureSelectorState):
         self.grid_widget.state_data.transforms[GridTransform.POINT_TRANSFORM] = point_transform
         self.grid_widget.update()
 
-    def on_mouse_release(self, btn):
-        if btn != GridRotateState.MOUSE_BUTTON:
+    def on_mouse_release(self, btn, pos):
+        if btn != RotateGridState.MOUSE_BUTTON:
             return
         self.active_handle = None
         if self.grid_widget.grid_controller.isEmpty() or abs(self.angle) < 0.01:
@@ -690,8 +700,14 @@ class GridRotateState(BaseGridState, MouseKeyboardState, FeatureSelectorState):
         self.angle = 0
         self.grid_widget.update()
 
+    def input_priority(self):
+        return StateUpdatePriority.input[StateUpdatePriority.ROTATE_GRID_STATE]
 
-class GridChangeDimensionState(BaseGridState, MouseKeyboardState, FeatureSelectorState):
+    def paint_priority(self):
+        return StateUpdatePriority.paint[StateUpdatePriority.ROTATE_GRID_STATE]
+
+
+class ChangeGridDimensionState(BaseGridState, MouseKeyboardState, FeatureSelectorState):
 
     MOUSE_BUTTON = Qt.LeftButton
 
@@ -706,9 +722,9 @@ class GridChangeDimensionState(BaseGridState, MouseKeyboardState, FeatureSelecto
     def inject_event(self, source, event):
         MouseKeyboardState.injectEvent(self, source, event)
         if event.type() == QEvent.MouseButtonPress or event.type() == QEvent.MouseButtonRelease:
-            handle = self.select_target(self.mousePos)
+            handle = self.select_target(self.get_mouse_pos())
             if self.is_valid_handle(handle):
-                if event.button() == GridChangeDimensionState.MOUSE_BUTTON:
+                if event.button() == ChangeGridDimensionState.MOUSE_BUTTON:
                     return True
         return False
 
@@ -720,10 +736,10 @@ class GridChangeDimensionState(BaseGridState, MouseKeyboardState, FeatureSelecto
             return True
         return False
 
-    def on_mouse_down(self, btn):
-        if btn != GridChangeDimensionState.MOUSE_BUTTON:
+    def on_mouse_down(self, btn, pos):
+        if btn != ChangeGridDimensionState.MOUSE_BUTTON:
             return
-        handle = self.select_target(self.mousePos)
+        handle = self.select_target(pos)
         if not self.is_valid_handle(handle):
             return
         if self.grid_widget.grid_controller.isEmpty():
@@ -732,10 +748,10 @@ class GridChangeDimensionState(BaseGridState, MouseKeyboardState, FeatureSelecto
         self.bounding_points = self.grid_controller.bounding_points.copy()
 
     def on_mouse_moved(self, old_pos, new_pos, delta):
-        handle = self.select_target(self.mousePos)
+        handle = self.select_target(new_pos)
         if self.grid_widget.grid_controller.isEmpty() or not self.is_valid_handle(self.active_handle):
             return
-        down = self.grid_widget.map_screen_to_sample(self.get_down_pos(GridChangeDimensionState.MOUSE_BUTTON))
+        down = self.grid_widget.map_screen_to_sample(self.get_down_pos(ChangeGridDimensionState.MOUSE_BUTTON))
         now = self.grid_widget.map_screen_to_sample(new_pos)
         self.mouse_offset = now - down
         self.bounding_points = self.grid_controller.bounding_points.copy()
@@ -749,8 +765,8 @@ class GridChangeDimensionState(BaseGridState, MouseKeyboardState, FeatureSelecto
         self.bounding_points[affected_points_idx[1]] = self.bounding_points[affected_points_idx[1]] + point_offset_dir * mouse_offset_vec
         self.grid_widget.update()
 
-    def on_mouse_release(self, btn):
-        if btn != GridChangeDimensionState.MOUSE_BUTTON:
+    def on_mouse_release(self, btn, pos):
+        if btn != ChangeGridDimensionState.MOUSE_BUTTON:
             return
         if self.grid_widget.grid_controller.isEmpty() or not self.is_valid_handle(self.active_handle):
             return
@@ -787,8 +803,14 @@ class GridChangeDimensionState(BaseGridState, MouseKeyboardState, FeatureSelecto
             t = self.grid_widget.screen_to_sample_transform()
             GridPainter.draw_boundingbox_with_handles(t, painter, self.bounding_points)
 
+    def input_priority(self):
+        return StateUpdatePriority.input[StateUpdatePriority.CHANGE_GRID_DIMENSION]
 
-class GridMoveSampleState(BaseGridState, MouseKeyboardState):
+    def paint_priority(self):
+        return StateUpdatePriority.paint[StateUpdatePriority.CHANGE_GRID_DIMENSION]
+
+
+class CenterPointInViewState(BaseGridState, MouseKeyboardState):
 
     MOUSE_BUTTON = Qt.RightButton
 
@@ -799,25 +821,24 @@ class GridMoveSampleState(BaseGridState, MouseKeyboardState):
     def inject_event(self, source, event):
         MouseKeyboardState.injectEvent(self, source, event)
         if event.type() == QEvent.MouseButtonPress or event.type() == QEvent.MouseButtonRelease:
-            if event.button() == GridMoveSampleState.MOUSE_BUTTON:
+            if event.button() == CenterPointInViewState.MOUSE_BUTTON:
                 return True
         return False
 
-    def on_mouse_down(self, btn):
-        if btn != GridMoveSampleState.MOUSE_BUTTON:
+    def on_mouse_down(self, btn, pos):
+        if btn != CenterPointInViewState.MOUSE_BUTTON:
             return
-        mouse_pos = self.get_down_pos(btn)
-        target = self.grid_widget.map_screen_to_sample(mouse_pos)
+        target = self.grid_widget.map_screen_to_sample(pos)
         self.grid_widget.move_sample_position_to_view_center(target)
 
-    def update_priority(self):
-        return 1
+    def input_priority(self):
+        return StateUpdatePriority.input[StateUpdatePriority.CENTER_POSITION_IN_VIEW]
 
-    def draw_priority(self):
-        return 1
+    def paint_priority(self):
+        return StateUpdatePriority.paint[StateUpdatePriority.CENTER_POSITION_IN_VIEW]
 
 
-class GridPlacerByChipState(BaseGridState, MouseKeyboardState):
+class BuildGridByChipState(BaseGridState, MouseKeyboardState):
 
     MOUSE_BUTTON = Qt.LeftButton
 
@@ -831,8 +852,8 @@ class GridPlacerByChipState(BaseGridState, MouseKeyboardState):
         pass
 
     def on_click(self, btn, pos):
-        if btn == GridPlacerByChipState.MOUSE_BUTTON:
-            asSamplePos = self.grid_widget.map_screen_to_sample(self.mousePos)
+        if btn == BuildGridByChipState.MOUSE_BUTTON:
+            asSamplePos = self.grid_widget.map_screen_to_sample(pos)
             self.points.append(asSamplePos)
             if len(self.points) >= 2:
                 if self.points[0] == self.points[1]:
@@ -852,7 +873,7 @@ class GridPlacerByChipState(BaseGridState, MouseKeyboardState):
         if event.type() == QEvent.MouseMove:
             self.grid_widget.update()
         if event.type() == QEvent.MouseButtonPress or event.type() == QEvent.MouseButtonRelease:
-            if event.button() == GridPlacerByChipState.MOUSE_BUTTON:
+            if event.button() == BuildGridByChipState.MOUSE_BUTTON:
                 return True
         return False
 
@@ -878,26 +899,26 @@ class GridPlacerByChipState(BaseGridState, MouseKeyboardState):
     def do_paint(self, view_transform, painter):
         model_view = self.grid_widget.screen_to_sample_transform()
         if len(self.points) == 0:
-            asSamplePos = self.grid_widget.map_screen_to_sample(self.mousePos)
+            asSamplePos = self.grid_widget.map_screen_to_sample(self.get_mouse_pos())
             GridPainter.draw_point(model_view, painter, asSamplePos, self.handleSize, Qt.yellow, True)
             pass
         elif len(self.points) == 1:
             chip = self.grid_widget.chip_registry.get_chip(self.grid_widget.grid_controller.selected_chip_name.get())
-            mouseInSample = self.grid_widget.map_screen_to_sample(self.mousePos)
+            mouseInSample = self.grid_widget.map_screen_to_sample(self.get_mouse_pos())
             if glm.distance(self.points[0], mouseInSample) == 0:
                 points = self.build_boundingbox_from_points(self.points[0], self.points[0] + glm.vec2(0, 1), chip.chip_size)
             else:
                 points = self.build_boundingbox_from_points(self.points[0], mouseInSample, chip.chip_size)
             GridPainter.draw_boundingbox_with_handles(model_view, painter, points)
 
-    def update_priority(self):
-        return 1
+    def input_priority(self):
+        return StateUpdatePriority.input[StateUpdatePriority.PLACE_CHIP]
 
-    def draw_prioroty(self):
-        return 1
+    def paint_priority(self):
+        return StateUpdatePriority.paint[StateUpdatePriority.PLACE_CHIP]
 
 
-class GridPlacerByThreePointState(BaseGridState, MouseKeyboardState):
+class BuildGridByThreePointState(BaseGridState, MouseKeyboardState):
 
     MOUSE_BUTTON = Qt.LeftButton
 
@@ -912,7 +933,7 @@ class GridPlacerByThreePointState(BaseGridState, MouseKeyboardState):
         if event.type() == QEvent.MouseMove:
             self.grid_widget.update()
         if event.type() == QEvent.MouseButtonPress or event.type() == QEvent.MouseButtonRelease:
-            if event.button() == GridPlacerByThreePointState.MOUSE_BUTTON:
+            if event.button() == BuildGridByThreePointState.MOUSE_BUTTON:
                 return True
         return False
 
@@ -927,9 +948,8 @@ class GridPlacerByThreePointState(BaseGridState, MouseKeyboardState):
         return dir, l0 + dir * dst
 
     def on_click(self, btn, pos):
-        if btn == GridPlacerByThreePointState.MOUSE_BUTTON:
-            click_pos = self.mousePos
-            asSamplePos = self.grid_widget.map_screen_to_sample(click_pos)
+        if btn == BuildGridByThreePointState.MOUSE_BUTTON:
+            asSamplePos = self.grid_widget.map_screen_to_sample(pos)
             for p in self.points:
                 if p == asSamplePos:
                     return
@@ -942,7 +962,7 @@ class GridPlacerByThreePointState(BaseGridState, MouseKeyboardState):
             self.points.append(p)
             self.points = sorted(self.points, key=lambda p: (p.x))
         elif len(self.points) == 2:
-            asSamplePos = self.grid_widget.map_screen_to_sample(self.mousePos)
+            asSamplePos = self.grid_widget.map_screen_to_sample(self.get_mouse_pos())
             _, pol = self.map_point_on_perp_line(self.points[0], self.points[1], asSamplePos)
             self.points.append(pol)
             self.build_grid()
@@ -972,17 +992,17 @@ class GridPlacerByThreePointState(BaseGridState, MouseKeyboardState):
         # draw line from first point to mouse
         model_view = self.grid_widget.screen_to_sample_transform()
         if len(self.points) == 1:
-            asSamplePos = self.grid_widget.map_screen_to_sample(self.mousePos)
+            asSamplePos = self.grid_widget.map_screen_to_sample(self.get_mouse_pos())
             GridPainter.draw_line(model_view, painter, self.points[0], asSamplePos, Qt.red)
         # draw yellow circle at mouse pos as long as we have less than two points
         if len(self.points) < 2:
             # draw point at mouse pos
-            asSamplePos = self.grid_widget.map_screen_to_sample(self.mousePos)
+            asSamplePos = self.grid_widget.map_screen_to_sample(self.get_mouse_pos())
             GridPainter.draw_point(model_view, painter, asSamplePos, self.handleSize, Qt.yellow, True)
         # at two points (saved) we need to lock the third point on the perp line from our previous points
         if len(self.points) == 2:
             GridPainter.draw_line(model_view, painter, self.points[0], self.points[1], Qt.red)
-            asSamplePos = self.grid_widget.map_screen_to_sample(self.mousePos)
+            asSamplePos = self.grid_widget.map_screen_to_sample(self.get_mouse_pos())
             dir, pol = self.map_point_on_perp_line(self.points[0], self.points[1], asSamplePos)
             GridPainter.draw_line(model_view, painter, self.points[0],  + dir * 1000000, Qt.red)
             GridPainter.draw_point(model_view, painter, pol, self.handleSize, Qt.yellow, True)
@@ -990,14 +1010,14 @@ class GridPlacerByThreePointState(BaseGridState, MouseKeyboardState):
         for p in self.points:
             GridPainter.draw_point(model_view, painter, p, self.handleSize, Qt.yellow, True)
 
-    def update_priority(self):
-        return 1
+    def input_priority(self):
+        return StateUpdatePriority.input[StateUpdatePriority.PLACE_THREE_POINT]
 
-    def draw_prioroty(self):
-        return 1
+    def paint_priority(self):
+        return StateUpdatePriority.paint[StateUpdatePriority.PLACE_THREE_POINT]
 
 
-class GridShowBeamProfileState(BaseGridState, MouseKeyboardState):
+class ShowBeamProfileState(BaseGridState, MouseKeyboardState):
 
     def __init__(self, grid_widget):
         BaseGridState.__init__(self, grid_widget)
@@ -1124,8 +1144,14 @@ class GridShowBeamProfileState(BaseGridState, MouseKeyboardState):
 
         painter.restore()
 
+    def input_priority(self):
+        return StateUpdatePriority.input[StateUpdatePriority.SHOW_BEAMPROFILE]
 
-class GridTransformViewState(BaseGridState, MouseKeyboardState):
+    def paint_priority(self):
+        return StateUpdatePriority.paint[StateUpdatePriority.SHOW_BEAMPROFILE]
+
+
+class ChangeGridCameraState(BaseGridState, MouseKeyboardState):
 
     MOVE_BUTTON = Qt.LeftButton
     RESET_BUTTON = Qt.MiddleButton
@@ -1140,18 +1166,14 @@ class GridTransformViewState(BaseGridState, MouseKeyboardState):
 
     def inject_event(self, source, event):
         MouseKeyboardState.injectEvent(self, source, event)
-        if event.type() == QEvent.MouseButtonPress or event.type() == QEvent.MouseButtonRelease:
-            return True
-        if event.type() == QEvent.MouseMove and self.is_btn_pressed(GridTransformViewState.MOVE_BUTTON):
-            return True
-        if event.type() == QEvent.Wheel:
+        if event.type() in(QEvent.MouseButtonPress, QEvent.MouseButtonRelease, QEvent.MouseMove, QEvent.Wheel):
             return True
         return False
 
-    def on_mouse_down(self, btn):
-        if btn == GridTransformViewState.MOVE_BUTTON:
-            self.down_pos = self.grid_widget.map_screen_to_view(self.get_down_pos(GridTransformViewState.MOVE_BUTTON))
-        elif btn == GridTransformViewState.RESET_BUTTON:
+    def on_mouse_down(self, btn, pos):
+        if btn == ChangeGridCameraState.MOVE_BUTTON:
+            self.down_pos = self.grid_widget.map_screen_to_view(self.get_down_pos(ChangeGridCameraState.MOVE_BUTTON))
+        elif btn == ChangeGridCameraState.RESET_BUTTON:
             self.view_translate = glm.vec2(0, 0)
             self.view_zoom_factor = 1
             self.view_zoom_step = 0
@@ -1160,18 +1182,18 @@ class GridTransformViewState(BaseGridState, MouseKeyboardState):
             self.grid_widget.update()
 
     def on_mouse_moved(self, old_pos, new_pos, delta):
-        if self.is_btn_pressed(GridTranslateState.MOUSE_BUTTON):
+        if self.is_btn_pressed(MoveGridState.MOUSE_BUTTON):
             now = self.grid_widget.map_screen_to_view(new_pos)
             translate = now - self.down_pos
             self.view_translate += translate
             self.update_state()
             self.grid_widget.update()
 
-    def on_mouse_wheel(self, delta):
-        world_pre = self.mousePos / self.view_zoom_factor + self.view_translate
+    def on_mouse_wheel(self, delta, pos):
+        world_pre = pos / self.view_zoom_factor + self.view_translate
         self.view_zoom_step -= delta.y() / 120
         self.view_zoom_factor = math.pow(0.9, self.view_zoom_step)
-        world_post = self.mousePos / self.view_zoom_factor + self.view_translate
+        world_post = pos / self.view_zoom_factor + self.view_translate
         diff = (world_pre - world_post)
         self.view_translate = self.view_translate - diff
         self.update_state()
@@ -1186,8 +1208,14 @@ class GridTransformViewState(BaseGridState, MouseKeyboardState):
         self.grid_widget.state_data.view_zoom_factor = self.view_zoom_factor
         self.grid_widget.state_data.view_zoom_step = self.view_zoom_step
 
+    def input_priority(self):
+        return StateUpdatePriority.input[StateUpdatePriority.CHANGE_CAMERA]
 
-class PoiMovementState(BaseGridState, MouseKeyboardState):
+    def paint_priority(self):
+        return StateUpdatePriority.paint[StateUpdatePriority.CHANGE_CAMERA]
+
+
+class Center9PatchAnchorInViewState(BaseGridState, MouseKeyboardState):
 
     MOUSE_BUTTON = Qt.LeftButton
 
@@ -1252,7 +1280,7 @@ class PoiMovementState(BaseGridState, MouseKeyboardState):
         return -1
 
     def on_click(self, btn, pos):
-        if btn == PoiMovementState.MOUSE_BUTTON and self.active_grid_button != -1:
+        if btn == Center9PatchAnchorInViewState.MOUSE_BUTTON and self.active_grid_button != -1:
             if self.grid_widget.grid_controller.isEmpty():
                 return
             selected_button = self.button_templates[self.active_grid_button]
@@ -1260,7 +1288,7 @@ class PoiMovementState(BaseGridState, MouseKeyboardState):
             center_position = self.map_norm_to_grid_bb(glm.vec2(normalized_grid_position))
             self.grid_widget.move_sample_position_to_view_center(center_position)
 
-    def on_mouse_moved(self, new_pos, newPos, delta):
+    def on_mouse_moved(self, old_pos, new_pos, delta):
         pos = self.grid_widget.map_screen_to_view(new_pos)
         new_btn = self.find_button_for_position(pos)
         if new_btn != self.active_grid_button:
@@ -1285,11 +1313,11 @@ class PoiMovementState(BaseGridState, MouseKeyboardState):
                 painter.drawEllipse(btn[1].x, btn[1].y, btn[1].z, btn[1].w)
         painter.restore()
 
-    def update_priority(self):
-        return 2
+    def input_priority(self):
+        return StateUpdatePriority.input[StateUpdatePriority.CENTER_9PATCH_ANCHOR]
 
-    def draw_priority(self):
-        return 2
+    def paint_priority(self):
+        return StateUpdatePriority.paint[StateUpdatePriority.CENTER_9PATCH_ANCHOR]
 
 #
 # actual qwidget
@@ -1332,7 +1360,7 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         # move_view, move_poi
         # BASE:     [passive: beamprofile] <- translate <- change_dimension <- rotate <- move_sample
         # EXTENDED: [place_chip | place_threepoint] <- move_view <- move_poi
-        return [GridTranslateState(self), GridChangeDimensionState(self), GridRotateState(self), GridMoveSampleState(self)]
+        return [MoveGridState(self), ChangeGridDimensionState(self), RotateGridState(self), CenterPointInViewState(self)]
 
     def start_update_tick(self):
         last_pos = self.query_sample_position()
@@ -1375,7 +1403,7 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         self.grid_controller.draw_original_size.register(self.on_draw_original_size_changed)
 
     def eventFilter(self, source, event):
-        for s in reversed(sorted(self.activeStates, key= lambda s: s.update_priority())):
+        for s in reversed(sorted(self.activeStates, key= lambda s: s.input_priority())):
             if s.inject_event(source, event):
                 return True
         return MouseKeyboardState.injectEvent(self, source, event)
@@ -1404,7 +1432,7 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
                     return
                 image_size = self.get_image_size()
                 self.image = frame
-                for s in sorted(self.activeStates, key=lambda s: s.update_priority()):
+                for s in sorted(self.activeStates, key=lambda s: s.input_priority()):
                     s.image_changed(self.image)
         self.update()
 
@@ -1479,15 +1507,15 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
 
     def on_key_down(self, key):
         if key == Qt.Key_Shift:
-            self.add_state(PoiMovementState(self), GridWidgetAction.POI_MOVE)
+            self.add_state(Center9PatchAnchorInViewState(self), GridWidgetAction.POI_MOVE)
         elif key == Qt.Key_Control:
-            self.add_state(GridTransformViewState(self))
+            self.add_state(ChangeGridCameraState(self))
 
     def on_key_up(self, key):
         if key == Qt.Key_Shift:
-            self.remove_states_by_type([PoiMovementState], GridWidgetAction.POI_MOVE)
+            self.remove_states_by_type([Center9PatchAnchorInViewState], GridWidgetAction.POI_MOVE)
         elif key == Qt.Key_Control:
-            self.remove_states_by_type([GridTransformViewState])
+            self.remove_states_by_type([ChangeGridCameraState])
 
     def paintEvent(self, event):
         if self.image is None:
@@ -1528,7 +1556,7 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
                                        painter,
                                        beam_size * GridConstants.muToPixelRatio,
                                        beam_offset * GridConstants.muToPixelRatio)
-        for s in sorted(self.activeStates, key=lambda s: s.draw_priority()):
+        for s in sorted(self.activeStates, key=lambda s: s.paint_priority()):
             s.do_paint(view_transform, painter)
         self.grid_painter.draw_frame_info(view_transform, painter, self.state_data)
         GridPainter.draw_widget_border(painter)
@@ -1579,12 +1607,12 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         self.reset_states()
 
     def handle_place_by_line(self, checked):
-        self.add_state(GridPlacerByChipState(self))
-        self.remove_states_by_type([GridPlacerByThreePointState])
+        self.add_state(BuildGridByChipState(self))
+        self.remove_states_by_type([BuildGridByThreePointState])
 
     def handle_place_by_three_point(self, checked):
-        self.add_state(GridPlacerByThreePointState(self))
-        self.remove_states_by_type([GridPlacerByChipState])
+        self.add_state(BuildGridByThreePointState(self))
+        self.remove_states_by_type([BuildGridByChipState])
 
     def handle_action_snapshot(self, checked):
         name = QFileDialog.getSaveFileName(parent=self, caption='Save File', directory="snapshot.png",
@@ -1604,17 +1632,17 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
 
     def handle_show_beamprofile(self, checked):
         if checked:
-            self.add_state(GridShowBeamProfileState(self))
+            self.add_state(ShowBeamProfileState(self))
         else:
-            self.remove_states_by_type([GridShowBeamProfileState])
+            self.remove_states_by_type([ShowBeamProfileState])
 
     def handle_poi_move(self, checked):
         if checked:
-            self.add_state(PoiMovementState(self))
+            self.add_state(Center9PatchAnchorInViewState(self))
         else:
-            self.remove_states_by_type([PoiMovementState])
+            self.remove_states_by_type([Center9PatchAnchorInViewState])
 
     def reset_states(self):
-        remove_types = [GridPlacerByChipState, GridPlacerByThreePointState]
+        remove_types = [BuildGridByChipState, BuildGridByThreePointState]
         self.activeStates = [elm for elm in self.activeStates if type(elm) not in remove_types]
 
