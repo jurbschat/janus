@@ -205,7 +205,7 @@ class VimbaCameraSimulationConnector(Connector):
         self.image = QPixmap("test_beam.png")
         self.timer = QTimer()
         self.timer.timeout.connect(self.image_update)
-        self.timer.start(1000 / 20)  # in fps
+        self.timer.start(1000 / 1)
 
     def image_update(self):
         self.attributes["image_8"]["value"] = self.image

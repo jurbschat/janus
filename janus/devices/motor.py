@@ -95,7 +95,7 @@ class TangoMotor(Motor):
     
     value_changed = pyqtSignal(str, name="valueChanged")
 
-    def __init__(self, connector=None, uri=None, updateInterval = 0.05):
+    def __init__(self, connector=None, uri=None, updateInterval = 0.02):
         Motor.__init__(self)
         self.uri = uri
         attributes = {}
