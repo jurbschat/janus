@@ -2,6 +2,7 @@ import time
 import math
 #import glm
 import numpy as np
+import gc
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -520,7 +521,7 @@ class MoveGridState(BaseGridState, MouseKeyboardState):
         if btn == MoveGridState.MOUSE_BUTTON and self.translated_pos != QPointF(0, 0):
             bounding_points = self.grid_controller.bounding_points
             rect_points = [x + self.translated_pos for x in bounding_points]
-            if (rect_points[0] - rect_points[1]).length() <= 0.1 or (rect_points[0] - rect_points[2]).length() <= 0.1:
+            if QVector2D(rect_points[0] - rect_points[1]).length() <= 0.1 or QVector2D(rect_points[0] - rect_points[2]).length() <= 0.1:
                 return
             chip = self.grid_widget.chip_registry.get_chip(self.grid_controller.selected_chip_name.get())
             self.grid_controller.update_generator(ChipPointGenerator(rect_points, chip))
@@ -743,9 +744,9 @@ class ChangeGridDimensionState(BaseGridState, MouseKeyboardState, FeatureSelecto
         perp_points_handle = self.get_perpendicular_indexes(self.active_handle)
         perp_points_handle_idx = self.map_handle_to_bb_indexes(perp_points_handle)
         point_offset_vec = self.bounding_points[perp_points_handle_idx[0]] - self.bounding_points[perp_points_handle_idx[1]]
-        point_offset_dir = QVector2D(point_offset_vec).normalized()
+        point_offset_dir = QVector2D(point_offset_vec).normalized().toPointF()
         affected_points_idx = self.map_handle_to_bb_indexes(self.active_handle)
-        mouse_offset_vec = QVector2D.dot(point_offset_dir, self.mouse_offset)
+        mouse_offset_vec = QVector2D.dotProduct(QVector2D(point_offset_dir), QVector2D(self.mouse_offset))
         self.bounding_points[affected_points_idx[0]] = self.bounding_points[affected_points_idx[0]] + point_offset_dir * mouse_offset_vec
         self.bounding_points[affected_points_idx[1]] = self.bounding_points[affected_points_idx[1]] + point_offset_dir * mouse_offset_vec
         self.grid_widget.update()
@@ -873,8 +874,8 @@ class BuildGridByChipState(BaseGridState, MouseKeyboardState):
     def build_boundingbox_from_points(self, one, two, chip_size):
         origin = one
         dir = two - origin
-        vDown = QVector2D(dir).normalized()
-        vRight = QVector2D(vDown[1]  - -vDown[0]).normalized()
+        vDown = QVector2D(dir).normalized().toPointF()
+        vRight = QVector2D(vDown.y(), -vDown.x()).normalized().toPointF()
         p0 = origin
         p1 = origin + vRight * chip_size.x()
         p2 = origin + vRight * chip_size.x() + vDown * chip_size.y()
@@ -891,7 +892,7 @@ class BuildGridByChipState(BaseGridState, MouseKeyboardState):
         elif len(self.points) == 1:
             chip = self.grid_widget.chip_registry.get_chip(self.grid_widget.grid_controller.selected_chip_name.get())
             mouseInSample = self.grid_widget.map_screen_to_sample(self.get_mouse_pos())
-            if (self.points[0] - mouseInSample).length() == 0:
+            if QVector2D(self.points[0] - mouseInSample).length() == 0:
                 points = self.build_boundingbox_from_points(self.points[0], self.points[0] + QPointF(0, 1), chip.chip_size)
             else:
                 points = self.build_boundingbox_from_points(self.points[0], mouseInSample, chip.chip_size)
@@ -925,10 +926,10 @@ class BuildGridByThreePointState(BaseGridState, MouseKeyboardState):
 
     def map_point_on_perp_line(self, l0, l1, p):
         vec = l1 - l0
-        perp = QPointF(-vec.y, vec.x)
-        dir = QVector2D(perp).normalized()
+        perp = QPointF(-vec.y(), vec.x())
+        dir = QVector2D(perp).normalized().toPointF()
         offset = p - l0
-        dst = QVector2D.dot(dir, offset)
+        dst = QVector2D.dotProduct(QVector2D(dir), QVector2D(offset))
         if dst < 0:
             dst = 0
         return dir, l0 + dir * dst
@@ -1055,7 +1056,7 @@ class ShowBeamProfileState(BaseGridState, MouseKeyboardState):
         #print("calculating profile took: {}ms".format(stop - start))
 
     def get_translate_transform(self, pos):
-        return QTransform().translate(pos) * self.grid_widget.state_data.transforms[GridTransform.VIEW]
+        return QTransform().translate(pos.x(), pos.y()) * self.grid_widget.state_data.transforms[GridTransform.VIEW]
 
     def do_paint(self, view_transform, painter):
         if self.profile is None:
@@ -1136,7 +1137,7 @@ class ShowBeamProfileState(BaseGridState, MouseKeyboardState):
 
         painter.setPen(Qt.white)
         text_offset_bw = QPointF(max_x * ratio - beam_width_text_len / 2,
-                                  img_size.y - graph_height - painter.fontMetrics().height())
+                                  img_size.y() - graph_height - painter.fontMetrics().height())
         text_offset_bh = QPointF(img_size.x() - graph_width - beam_height_text_len - 20, max_y * ratio - 5)
         GridPainter.draw_text_with_bg(self.get_translate_transform(text_offset_bh), painter, beam_height_text,
                                       Qt.white, QColor(0, 0, 0, 128))
