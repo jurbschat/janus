@@ -106,10 +106,11 @@ class LiveView(Application):
         }
         self.janus.controllers["grid_axis_controller"] = AxisController(devices)
         chip = chip_registry.get_chip("new-format")
-        self.janus.controllers["grid"] = GridController(ChipPointGenerator([glm.vec2(0, 0), 
-                glm.vec2(chip.chip_size.x, 0), 
-                glm.vec2(chip.chip_size.x, chip.chip_size.y), 
-                glm.vec2(0, chip.chip_size.y)
+        self.janus.controllers["grid"] = GridController(ChipPointGenerator([
+                QPointF(0, 0),
+                QPointF(chip.chip_size.x(), 0),
+                QPointF(chip.chip_size.x(), chip.chip_size.y()),
+                QPointF(0, chip.chip_size.y())
             ], 
             chip))
         #self.janus.controllers["grid"] = GridController()

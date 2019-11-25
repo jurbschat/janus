@@ -1,9 +1,7 @@
-from janus.utils.xmlchipparser import XmlChipReadWrite
 from janus.controllers.controllerbase import ControllerBase
-from janus.utils.config import Config
 from janus.core import Object
-import glm
 import re
+from PyQt5.QtCore import *
 
 class ParseHelper:
     @staticmethod
@@ -11,11 +9,11 @@ class ParseHelper:
         str = "".join(str.split())
         pattern = re.compile(r"\((?P<x>.*?),(?P<y>.*?)\)")
         match = pattern.match(str)
-        return glm.vec2(float(match.group("x")), float(match.group("y")))
+        return QPointF(float(match.group("x")), float(match.group("y")))
 
     @staticmethod
     def serialize(vec):
-        return "({}, {})".format(vec.x, vec.y)
+        return "({}, {})".format(vec.x(), vec.y())
 
 class Chip():
     @staticmethod
@@ -47,12 +45,12 @@ class Chip():
 
     def __init__(self):
         self.name = "INVALID"
-        self.origin_offset = glm.vec2(0, 0)
-        self.chip_size = glm.vec2(0, 0)
-        self.hole_distance = glm.vec2(0, 0)
+        self.origin_offset = QPointF(0, 0)
+        self.chip_size = QPointF(0, 0)
+        self.hole_distance = QPointF(0, 0)
         self.odd_indentation = 0
-        self.window_size = glm.vec2(0, 0)
-        self.support_size = glm.vec2(0, 0)
+        self.window_size = QPointF(0, 0)
+        self.support_size = QPointF(0, 0)
 
 class ChipRegistry(ControllerBase, Object):
     def __init__(self, path):

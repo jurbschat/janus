@@ -59,8 +59,8 @@ class GridControls(QObject, Object):
         self.ui.chipOriginX.blockSignals(True)
         self.ui.chipOriginY.blockSignals(True)
         chip = self.chip_registry.get_chip(chip_name)
-        self.ui.chipOriginX.setValue(chip.origin_offset.x)
-        self.ui.chipOriginY.setValue(chip.origin_offset.y)
+        self.ui.chipOriginX.setValue(chip.origin_offset.x())
+        self.ui.chipOriginY.setValue(chip.origin_offset.y())
         self.ui.chipOriginX.blockSignals(False)
         self.ui.chipOriginY.blockSignals(False)
 
@@ -76,20 +76,20 @@ class GridControls(QObject, Object):
 
     def beam_offset_ui_changed(self):
         self.grid_controller.beam_offset.unregister(self.beam_offset_external_change)
-        self.grid_controller.beam_offset.set(glm.vec2(self.ui.beamOffsetX.value(), self.ui.beamOffsetY.value()))
+        self.grid_controller.beam_offset.set(QPointF(self.ui.beamOffsetX.value(), self.ui.beamOffsetY.value()))
         self.grid_controller.beam_offset.register(self.beam_offset_external_change)
 
     def beam_offset_external_change(self, value):
         self.ui.beamOffsetX.blockSignals(True)
         self.ui.beamOffsetY.blockSignals(True)
-        self.ui.beamOffsetX.setValue(value.x)
-        self.ui.beamOffsetY.setValue(value.y)
+        self.ui.beamOffsetX.setValue(value.x())
+        self.ui.beamOffsetY.setValue(value.y())
         self.ui.beamOffsetX.blockSignals(False)
         self.ui.beamOffsetY.blockSignals(False)
 
     def chip_origin_changed(self):
         chip = self.chip_registry.get_chip(self.grid_controller.selected_chip_name.get())
-        chip.origin_offset = glm.vec2(self.ui.chipOriginX.value(), self.ui.chipOriginY.value())
+        chip.origin_offset = QPointF(self.ui.chipOriginX.value(), self.ui.chipOriginY.value())
         self.ui.chipOriginX.setStyleSheet("background-color: yellow")
         self.ui.chipOriginY.setStyleSheet("background-color: yellow")
         self.modified_chips.add(chip.name)

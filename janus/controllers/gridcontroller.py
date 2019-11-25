@@ -1,19 +1,12 @@
-import os
-import sys
 from timeit import default_timer as timer
 import numpy as np
-from scipy.spatial import KDTree
 from scipy.spatial import cKDTree
 from janus.utils.observableproperty import ObservableProperty
 from janus.controllers.controllerbase import ControllerBase
 import math
-import glm
-import scipy
-import pprint
+from PyQt5.QtGui import QVector2D
 
 from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
 
 def rand_cmap(nlabels, type='bright', first_color_black=True, last_color_black=False, verbose=True):
     """
@@ -89,7 +82,7 @@ def rand_cmap(nlabels, type='bright', first_color_black=True, last_color_black=F
 
 class GeneratorBase:
     def get_bounding_points(self):
-        return [ glm.vec2(0, 0), glm.vec2(0, 0), glm.vec2(0, 0), glm.vec2(0, 0) ]
+        return [ QPointF(0, 0), QPointF(0, 0), QPointF(0, 0), QPointF(0, 0) ]
 
 class AABBPointGenerator(GeneratorBase):
     def __init__(self, pos, size, step_x, step_y):
@@ -105,13 +98,13 @@ class AABBPointGenerator(GeneratorBase):
         points = []
         lines = []
         idx = 0
-        for y in np.arange(0, self.size.y + step_y, step_y):
-            startPos = glm.vec2(step_x, y)
+        for y in np.arange(0, self.size.y() + step_y, step_y):
+            startPos = QPointF(step_x, y)
             startIdx = idx
-            p = glm.vec2()
-            for x in np.arange(0, self.size.x + step_x, step_x):
-                p = glm.vec2(x, y) + self.pos
-                points.append((p.x, p.y))
+            p = QPointF()
+            for x in np.arange(0, self.size.x() + step_x, step_x):
+                p = QPointF(x, y) + self.pos
+                points.append((p.x(), p.y()))
                 idx += 1
             endPos = p
             endIdx = idx - 1
@@ -125,9 +118,9 @@ class AABBPointGenerator(GeneratorBase):
     def get_bounding_points(self):
         return [
             self.pos,
-            self.pos + glm.vec2(self.size.x, 0),
-            self.pos + glm.vec2(self.size.x, self.size.y),
-            self.pos + (0, self.size.y)
+            self.pos + QPointF(self.size.x(), 0),
+            self.pos + QPointF(self.size.x(), self.size.y()),
+            self.pos + QPointF(0, self.size.y())
         ]
 
 class BBPointGenerator(GeneratorBase):
@@ -153,10 +146,10 @@ class BBPointGenerator(GeneratorBase):
         for y in np.arange(0, rows, 1):
             startPos = origin + rightStep * 0 + downStep * y
             startIdx = idx
-            p = glm.vec2()
+            p = QPointF()
             for x in np.arange(0, columns, 1):
                 p = origin + rightStep * x + downStep * y
-                points.append((p.x, p.y))
+                points.append((p.x(), p.y()))
                 idx += 1
             endPos = p
             endIdx = idx - 1
@@ -184,7 +177,7 @@ class ChipPointGenerator(GeneratorBase):
 
     def get_angle_from_bounding_points(self, bounding_points):
         vec = bounding_points[1] - bounding_points[0]
-        angle =  math.atan2(-vec.y, vec.x) * 180 / math.pi
+        angle =  math.atan2(-vec.y(), vec.x()) * 180 / math.pi
         return angle
 
     #@profile
@@ -196,14 +189,14 @@ class ChipPointGenerator(GeneratorBase):
         # directly on a border (e.g. chip size is evenly divisible by hole distance)
         # more robust
         eps = 0.00001
-        size_x = glm.distance(bounding_points[1], bounding_points[0]) + eps
-        size_y = glm.distance(bounding_points[3], bounding_points[0]) + eps
+        size_x = QVector2D(bounding_points[1] - bounding_points[0]).length() + eps
+        size_y = QVector2D(bounding_points[3] - bounding_points[0]).length() + eps
 
         # generate point grind as numpy array of 2d tuples, e.g. [[], []...]
         # we use this as the point of truth for our grid size to calculate
         # rows/columns. numpy point generation is way faster that manual looping in python
         # for values > 1e6
-        grid = np.mgrid[0:size_x:chip.hole_distance.x, 0:size_y:chip.hole_distance.y]
+        grid = np.mgrid[0:size_x:chip.hole_distance.x(), 0:size_y:chip.hole_distance.y()]
         columns = grid.shape[1]
         rows = grid.shape[2]
         points = grid.T.reshape(-1, 2)
@@ -211,11 +204,11 @@ class ChipPointGenerator(GeneratorBase):
         # translate and rotate points to match our grid transformation specified by
         # the pounding points
         vec = bounding_points[1] - bounding_points[0]
-        angle = math.atan2(vec.y, vec.x)
+        angle = math.atan2(vec.y(), vec.x())
         rot = np.array([[math.cos(angle), -math.sin(angle)], [math.sin(angle), math.cos(angle)]])
         translation = bounding_points[0]
         points = points.dot(rot.T)
-        points = points + translation
+        points = points + (translation.x(), translation.y())
         self.points = points
 
         # generate meta info for every point. this info will also be returned when a point query
@@ -240,9 +233,9 @@ class ChipPointGenerator(GeneratorBase):
         # we mark all support rows and then transpose and repeat the step.
         # this is faster that some python logic for the columns case as
         # it runs is numpy
-        mark_support_structure(size_y, chip.window_size.y, chip.hole_distance.y, chip.support_size.y, [255, 0, 0])
+        mark_support_structure(size_y, chip.window_size.y(), chip.hole_distance.y(), chip.support_size.y(), [255, 0, 0])
         meta = meta.transpose()
-        mark_support_structure(size_x, chip.window_size.x, chip.hole_distance.x, chip.support_size.x, [255, 0, 0])
+        mark_support_structure(size_x, chip.window_size.x(), chip.hole_distance.x(), chip.support_size.x(), [255, 0, 0])
         meta = meta.transpose()
         meta = meta.ravel()
         self.meta = meta
@@ -307,24 +300,24 @@ class ChipPointGenerator(GeneratorBase):
         origin = bounding_points[0]
         vec_right = bounding_points[1] - bounding_points[0]
         vec_down = bounding_points[3] - bounding_points[0]
-        columns = glm.length(vec_right) / chip.hole_distance.x
-        rows = glm.length(vec_down) / chip.hole_distance.y
-        right_step = glm.normalize(vec_right) * chip.hole_distance.x
-        down_step = glm.normalize(vec_down) * chip.hole_distance.y
+        columns = glm.length(vec_right) / chip.hole_distance.x()
+        rows = glm.length(vec_down) / chip.hole_distance.y()
+        right_step = glm.normalize(vec_right) * chip.hole_distance.x()
+        down_step = glm.normalize(vec_down) * chip.hole_distance.y()
         odd_line_offset = glm.normalize(vec_right) * chip.odd_indentation
         line_length_with_offset = right_step * columns + down_step * 0 + odd_line_offset
         odd_line_column_count = columns - 1 if glm.length(line_length_with_offset) > glm.length(vec_right) else columns
         idx = 0
         for y in np.arange(0, rows, 1):
             is_even = y % 2 == 0
-            current_line_offset = odd_line_offset if not is_even else glm.vec2(0, 0)
+            current_line_offset = odd_line_offset if not is_even else QPointF(0, 0)
             start_pos = origin + right_step * 0 + down_step * y + current_line_offset
             start_idx = idx
-            point = glm.vec2()
+            point = QPointF()
             current_columns = odd_line_column_count if not is_even else columns
             for x in np.arange(0, current_columns, 1):
                 point = origin + right_step * x + down_step * y + current_line_offset
-                points.append(QPointF(point.x, point.y))
+                points.append(point)
                 idx += 1
             end_pos = point
             end_idx = idx - 1
@@ -336,19 +329,19 @@ class ChipPointGenerator(GeneratorBase):
         self.lines = np.array(lines)
 
         idx = 0
-        origin = glm.vec2(self.points[idx])
+        origin = QPointF(self.points[idx])
         window_size = chip.window_size
         support_size = chip.support_size
         for y in np.arange(0, rows, 1):
             is_even = y % 2 == 0
             current_columns = odd_line_column_count if not is_even else columns
             for x in np.arange(0, current_columns, 1):
-                p = glm.vec2(self.points[idx]) - origin
-                p.x = p.x % (window_size.x + support_size.x)
-                p.y = p.y % (window_size.y + support_size.y)
-                if window_size.x <= p.x <= window_size.x + support_size.x:
+                p = QPointF(self.points[idx]) - origin
+                p.setX(p.x() % (window_size.x() + support_size.x()))
+                p.setY(p.y() % (window_size.y() + support_size.y()))
+                if window_size.x() <= p.x() <= window_size.x() + support_size.x():
                     self.meta[idx] = [255, 0, 0]
-                if window_size.y <= p.y <= window_size.y + support_size.y:
+                if window_size.y() <= p.y() <= window_size.y() + support_size.y():
                     self.meta[idx] = [255, 255, 0]
                 idx += 1
 
@@ -359,7 +352,7 @@ class ChipPointGenerator(GeneratorBase):
 class GridController(ControllerBase):
 
     def __init__(self, generator=None):
-        self.bounding_points = [glm.vec2(0, 0), glm.vec2(0, 0), glm.vec2(0, 0), glm.vec2(0, 0)]
+        self.bounding_points = [QPointF(0, 0), QPointF(0, 0), QPointF(0, 0), QPointF(0, 0)]
         self.points = []
         self.meta = []
         self.lines = []
@@ -369,21 +362,21 @@ class GridController(ControllerBase):
             self.update_generator(generator)
 
         self.beam_size = ObservableProperty(10)
-        self.beam_offset = ObservableProperty(glm.vec2(0, 0))
-        self.sampleOffset = ObservableProperty(glm.vec2(0, 0))
+        self.beam_offset = ObservableProperty(QPointF(0, 0))
+        self.sampleOffset = ObservableProperty(QPointF(0, 0))
         self.draw_original_size = ObservableProperty(False)
         self.selected_chip_name = ObservableProperty("")
 
     def clear(self):
-        self.bounding_points = [glm.vec2(0, 0), glm.vec2(0, 0), glm.vec2(0, 0), glm.vec2(0, 0)]
+        self.bounding_points = [QPointF(0, 0), QPointF(0, 0), QPointF(0, 0), QPointF(0, 0)]
         self.points = []
         self.meta = []
         self.lines = []
         self.tree = None
 
     def isEmpty(self):
-        return self.bounding_points[0] - self.bounding_points[1] == glm.vec2(0, 0) \
-                or self.bounding_points[0] - self.bounding_points[3] == glm.vec2(0, 0)
+        return self.bounding_points[0] - self.bounding_points[1] == QPointF(0, 0) \
+                or self.bounding_points[0] - self.bounding_points[3] == QPointF(0, 0)
 
     def update_generator(self, generator):
         if generator is None:
@@ -404,8 +397,8 @@ class GridController(ControllerBase):
     def query_points(self, rect):
         if self.tree is None:
             return ([], [])
-        center = rect[0] + rect[1]/2
+        center = rect[0] + rect[1] / 2
         # enlarge by 0.1% for perfect matches (e.g. at 0/0 with no camera movement)
-        radius = glm.length(rect[1] / 2) * 1.001
-        idx = self.tree.query_ball_point(x=[center.x, center.y], r=radius)
+        radius = QVector2D((rect[1] / 2) * 1.001).length()
+        idx = self.tree.query_ball_point(x=[center.x(), center.y()], r=radius)
         return self.points[idx], self.meta[idx]
