@@ -84,7 +84,7 @@ class GeneratorBase:
     def get_bounding_points(self):
         return [ QPointF(0, 0), QPointF(0, 0), QPointF(0, 0), QPointF(0, 0) ]
 
-class AABBPointGenerator(GeneratorBase):
+'''class AABBPointGenerator(GeneratorBase):
     def __init__(self, pos, size, step_x, step_y):
         start = timer()
         print("generating points...")
@@ -138,10 +138,10 @@ class BBPointGenerator(GeneratorBase):
         origin = bounding_points[0]
         vecRight = bounding_points[1] - bounding_points[0]
         vecDown = bounding_points[3] - bounding_points[0]
-        columns = glm.length(vecRight) / columnSpacing
-        rows = glm.length(vecDown) / lineSpacing
-        rightStep = glm.normalize(vecRight) * columnSpacing
-        downStep = glm.normalize(vecDown) * lineSpacing
+        columns = QPointF(vecRight) / columnSpacing
+        rows = QPointF(vecDown) / lineSpacing
+        rightStep = QPointF(vecRight) * columnSpacing
+        downStep = QPointF(vecDown) * lineSpacing
         idx = 0
         for y in np.arange(0, rows, 1):
             startPos = origin + rightStep * 0 + downStep * y
@@ -161,17 +161,17 @@ class BBPointGenerator(GeneratorBase):
         return np.array(points), npcmap[lookup], np.array(lines)
 
     def get_bounding_points(self):
-        return self.bounding_points
+        return self.bounding_points'''
 
 class ChipPointGenerator(GeneratorBase):
-    def __init__(self, bounding_points, chip):
+    def __init__(self, bounding_points, chip, full_windows):
         self.points = np.array([(0, 0)])
         self.meta = np.array([(255, 0, 0)])
         self.lines = []
         self.bounding_points = bounding_points
         print("generating points... ", end = "", flush=True)
         start = timer()
-        self.build_points2(bounding_points, chip)
+        self.build_points2(bounding_points, chip, full_windows)
         end = timer()
         print("done. generating {} points took: {}ms".format(len(self.points), int((end - start)*1000)))
 
@@ -181,7 +181,7 @@ class ChipPointGenerator(GeneratorBase):
         return angle
 
     #@profile
-    def build_points2(self, bounding_points, chip):
+    def build_points2(self, bounding_points, chip, full_windows):
         # as floating point calculations are inherently not 100% precise it can be
         # that a rotated vector of length 500 comes out at e.g. 499.99999647, to
         # compensate this we ass a small epsilon to the length that should generally
@@ -230,6 +230,14 @@ class ChipPointGenerator(GeneratorBase):
                 for row in range(start_row, end_row):
                     meta[row,] = {"color": color, "valid": False}
 
+        # disable the first and last of each row and column (one point border around the whole chip)
+        # first and last row
+        meta[0, ] = {"color": [255, 0, 0], "valid": False}
+        meta[-1,] = {"color": [255, 0, 0], "valid": False}
+        # first and last columns
+        meta[:, 0] = {"color": [255, 0, 0], "valid": False}
+        meta[:, -1] = {"color": [255, 0, 0], "valid": False}
+
         # we mark all support rows and then transpose and repeat the step.
         # this is faster that some python logic for the columns case as
         # it runs is numpy
@@ -237,47 +245,22 @@ class ChipPointGenerator(GeneratorBase):
         meta = meta.transpose()
         mark_support_structure(size_x, chip.window_size.x(), chip.hole_distance.x(), chip.support_size.x(), [255, 0, 0])
         meta = meta.transpose()
+
+        # mark the last unfinished window as disabled
+        if not full_windows:
+            window_with_support_size = (chip.window_size + chip.support_size)
+            full_rows = window_with_support_size.x() / chip.hole_distance.x()
+            full_columns = window_with_support_size.y() / chip.hole_distance.y()
+            row_disable_start = int(rows / full_rows) * window_with_support_size.x()
+            column_disable_start = int(columns / full_columns) * window_with_support_size.y()
+            shape = meta.shape
+            meta[3:5,] = {"color": [255, 0, 0], "valid": False}
+            meta[:, 3:5] = {"color": [255, 0, 0], "valid": False}
+
+
+        # make 1d array of points from the 2d array for indexing into the kdtree later on
         meta = meta.ravel()
         self.meta = meta
-
-        ''' # separate support structure marking into x and y as
-        # it speeds up the marking by quite a margin (~factor 10)
-        # for vertical support structures we check start/end of the support structure
-        # in x (columns) direction and apply it to all rows, then we move to the next
-        # structure in x direction
-        meta = np.repeat({"color": [0, 255, 0], "valid": False}, len(points))
-        col_index = 0
-        while True:
-            start_x = chip.window_size.x * (col_index + 1) + chip.support_size.x * col_index
-            end_x = start_x + chip.support_size.x
-            if start_x >= size_x:
-                break
-            for y_index in range(rows):
-                offset = (y_index * columns)
-                start_id = int(start_x / chip.hole_distance.x) + offset
-                # support structure is calculated "inclusive" if a point is on the edge
-                # of a structure we count it as out, therefore + 1
-                end_id = int(end_x / chip.hole_distance.x) + offset + 1
-                meta[start_id:end_id] = {"color": [0, 255, 255], "valid": False}
-            col_index = col_index + 1
-
-        # for horizontal support structures we check the rows that are affected and simply
-        # completely mark them
-        row_index = 0
-        while True:
-            start_y = chip.window_size.y * (row_index + 1) + chip.support_size.y * row_index
-            end_y = start_y + chip.support_size.y
-            start_row = int(start_y / chip.hole_distance.y)
-            if start_row >= rows:
-                break
-            #
-            affected_rows = int((end_y - start_y) / chip.hole_distance.y) + 1
-            for row_offset in range(affected_rows):
-                start_id = (start_row + row_offset) * columns
-                end_id = start_id + (columns - 1)
-                meta[start_id:end_id] = {"color": [255, 0, 255], "valid": False}
-            row_index = row_index + 1
-        self.meta = meta'''
 
         # generate line information for all points
         lines = []
@@ -293,57 +276,6 @@ class ChipPointGenerator(GeneratorBase):
             }
             self.lines.append(self.lines.append(entry))
         self.lines = np.array(lines)
-
-    def build_points(self, bounding_points, chip):
-        points = []
-        lines = []
-        origin = bounding_points[0]
-        vec_right = bounding_points[1] - bounding_points[0]
-        vec_down = bounding_points[3] - bounding_points[0]
-        columns = glm.length(vec_right) / chip.hole_distance.x()
-        rows = glm.length(vec_down) / chip.hole_distance.y()
-        right_step = glm.normalize(vec_right) * chip.hole_distance.x()
-        down_step = glm.normalize(vec_down) * chip.hole_distance.y()
-        odd_line_offset = glm.normalize(vec_right) * chip.odd_indentation
-        line_length_with_offset = right_step * columns + down_step * 0 + odd_line_offset
-        odd_line_column_count = columns - 1 if glm.length(line_length_with_offset) > glm.length(vec_right) else columns
-        idx = 0
-        for y in np.arange(0, rows, 1):
-            is_even = y % 2 == 0
-            current_line_offset = odd_line_offset if not is_even else QPointF(0, 0)
-            start_pos = origin + right_step * 0 + down_step * y + current_line_offset
-            start_idx = idx
-            point = QPointF()
-            current_columns = odd_line_column_count if not is_even else columns
-            for x in np.arange(0, current_columns, 1):
-                point = origin + right_step * x + down_step * y + current_line_offset
-                points.append(point)
-                idx += 1
-            end_pos = point
-            end_idx = idx - 1
-            lines.append({"startPos": start_pos, "startIdx": start_idx, "endPos": end_pos, "endIdx": end_idx,
-                          "startEndVec": end_pos - start_pos})
-
-        self.points = np.array(points)
-        self.meta = np.array([[0, 255, 0]] * len(points))
-        self.lines = np.array(lines)
-
-        idx = 0
-        origin = QPointF(self.points[idx])
-        window_size = chip.window_size
-        support_size = chip.support_size
-        for y in np.arange(0, rows, 1):
-            is_even = y % 2 == 0
-            current_columns = odd_line_column_count if not is_even else columns
-            for x in np.arange(0, current_columns, 1):
-                p = QPointF(self.points[idx]) - origin
-                p.setX(p.x() % (window_size.x() + support_size.x()))
-                p.setY(p.y() % (window_size.y() + support_size.y()))
-                if window_size.x() <= p.x() <= window_size.x() + support_size.x():
-                    self.meta[idx] = [255, 0, 0]
-                if window_size.y() <= p.y() <= window_size.y() + support_size.y():
-                    self.meta[idx] = [255, 255, 0]
-                idx += 1
 
     def get_bounding_points(self):
         return self.bounding_points
@@ -364,7 +296,7 @@ class GridController(ControllerBase):
         self.beam_size = ObservableProperty(10)
         self.beam_offset = ObservableProperty(QPointF(0, 0))
         self.sampleOffset = ObservableProperty(QPointF(0, 0))
-        self.draw_original_size = ObservableProperty(False)
+        self.generate_only_full_windows = ObservableProperty(False)
         self.selected_chip_name = ObservableProperty("")
 
     def clear(self):

@@ -93,5 +93,5 @@ class Ui_FormAcqRun(object):
         self.label.setText(_translate("FormAcqRun", "Comment"))
         self.label_2.setText(_translate("FormAcqRun", "Folder"))
         self.pushButtonStartAcq.setText(_translate("FormAcqRun", "Start\n"
-"data collection"))
+"Data Collection"))
 

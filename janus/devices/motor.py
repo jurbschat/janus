@@ -4,7 +4,7 @@ This is part of the janus package.
 
 __author__ = "Jan Meyer"
 __email__ = "jan.meyer@desy.de"
-__copyright__ = "(c)2019 DESY, FS-PE, P11"
+__copyright__ = "(c)2019 DESY, FS-BMX, FS-Petra-D, P11"
 __license__ = "GPL"
 
 
@@ -312,3 +312,5 @@ class TangoMotor(Motor):
             return self.connector.read("hard_limit_max_fault", refresh, alt)
         else:
             return False
+
+        

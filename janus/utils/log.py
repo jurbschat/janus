@@ -4,11 +4,13 @@ Created on May 8, 2019
 @author: janmeyer
 '''
 
+import sys
 import logging
 from PyQt5.QtCore import QObject, pyqtSignal
 
 initialized = False
 stderr_handler = None
+stdout_handler = None
 root_logger = None
 
 
@@ -36,7 +38,18 @@ def StderrHandler():
     global stderr_handler
     if (not "initialized" in globals() or not initialized):
         __init__()
+    if stderr_handler is None:
+        stderr_handler = logging.StreamHandler(sys.stderr)
+        stderr_handler.setLevel(logging.ERROR)
     return stderr_handler
+
+
+def StdoutHandler():
+    global stdout_handler
+    if stdout_handler is None:
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setLevel(logging.INFO)
+    return stdout_handler
 
 
 def LogFormater():

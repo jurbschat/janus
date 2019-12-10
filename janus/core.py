@@ -9,7 +9,7 @@ import sys
 import signal
 from PyQt5.QtWidgets import QApplication, QSplashScreen, QMainWindow
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import QDir
+from PyQt5.QtCore import pyqtSignal, QDir
 
 class Object(object):
 
@@ -17,6 +17,8 @@ class Object(object):
         self.janus = sys.modules["__main__"]
 
 class Application(QApplication, Object):
+
+    init_done = pyqtSignal(name="initDone")
 
     def __init__(self, title="Janus", splash=None):
         Object.__init__(self)
@@ -69,6 +71,7 @@ class Application(QApplication, Object):
             splash.showMessage("\n\n   finished...")
             splash.finish(self.janus.widgets["mainwindow"])
         #start application
+        self.init_done.emit()
         self.processEvents()
         self.janus.widgets["mainwindow"].show()
         retCode = self.exec_()

@@ -124,4 +124,4 @@ class Ui_FormAcqXanes(object):
         self.label_8.setText(_translate("FormAcqXanes", "Emission line"))
         self.label_9.setText(_translate("FormAcqXanes", "ROI width"))
 
-from janus.widgets.qt_mofified import QElementChooser
+from janus.widgets.qt_modified import QElementChooser

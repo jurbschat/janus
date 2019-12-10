@@ -2,11 +2,13 @@
 
 # Form implementation generated from reading ui file 'gridcontrols.ui'
 #
-# Created by: PyQt5 UI code generator 5.7
+# Created by: PyQt5 UI code generator 5.13.1
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_GridControls(object):
     def setupUi(self, GridControls):
@@ -221,10 +223,10 @@ class Ui_GridControls(object):
         self.label_4 = QtWidgets.QLabel(self.groupBox)
         self.label_4.setObjectName("label_4")
         self.formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole, self.label_4)
-        self.originalSize = QtWidgets.QCheckBox(self.groupBox)
-        self.originalSize.setText("")
-        self.originalSize.setObjectName("originalSize")
-        self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole, self.originalSize)
+        self.fullWindowsOnly = QtWidgets.QCheckBox(self.groupBox)
+        self.fullWindowsOnly.setText("")
+        self.fullWindowsOnly.setObjectName("fullWindowsOnly")
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole, self.fullWindowsOnly)
         self.verticalLayout_3.addWidget(self.groupBox)
 
         self.retranslateUi(GridControls)
@@ -258,6 +260,5 @@ class Ui_GridControls(object):
         self.chipOriginX.setSuffix(_translate("GridControls", " um"))
         self.saveUpdatedChipData.setText(_translate("GridControls", "Save to XML"))
         self.reset.setText(_translate("GridControls", "Reset Values"))
-        self.label_4.setText(_translate("GridControls", "Original size:"))
-
+        self.label_4.setText(_translate("GridControls", "Full windows only"))
 from janus.widgets.qt_modified import QNoWheelDoubleSpinBox

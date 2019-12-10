@@ -4,7 +4,7 @@ This is part of the janus package.
 
 __author__ = "Jan Meyer"
 __email__ = "jan.meyer@desy.de"
-__copyright__ = "(c)2019 DESY, FS-PE, P11"
+__copyright__ = "(c)2019 DESY, FS-BMX, FS-Petra-D, P11"
 __license__ = "GPL"
 
 
@@ -169,9 +169,11 @@ class Plot(QObject, Object):
         if length > -1:
             min_length = length
             max_length = length
+        if data is not None and type(data) != numpy.ndarray:
+            data = numpy.array(data)
         if data is not None and data.shape[0] < min_length:
             data.resize(min_length)
-        if data is not None and data.shape[0] > max_length:
+        if data is not None and max_length > 0 and data.shape[0] > max_length:
             data.resize(max_length)
         datum = { \
                 "data": data, \
@@ -196,10 +198,10 @@ class Plot(QObject, Object):
                 start_value = attr(refresh=True)
                 datum["data"] = numpy.full(min_length, start_value)
             elif data is None:
-                datum["data"] = attr(refresh=True)
+                datum["data"] = numpy.array(attr(refresh=True))
                 if datum["data"].shape[0] < min_length:
                     datum["data"].resize(min_length)
-                if datum["data"].shape[0] > max_length:
+                if max_length > 0 and datum["data"].shape[0] > max_length:
                     datum["data"].resize(max_length)
         elif data_type == Plot.TYPE_TIME:
             datum["interval"] = interval
@@ -212,6 +214,13 @@ class Plot(QObject, Object):
         if role == Plot.ROLE_MASTER:
             self.set_master(i)
         return True
+
+    def remove_plot_data(self, i):
+        if i == self.master:
+            self.unset_master()
+        for item in self.data[i]["items"]:
+            self.remove_plot_item(item)
+        del self.data[i]
 
     def add_plot_item(self, i, x, y, colour=Qt.red):
         """Add a plot item representing two already added data series.
@@ -235,6 +244,12 @@ class Plot(QObject, Object):
                 pen=QColor(colour))
         self.widget.addItem(self.items[i]["plot"])
 
+    def remove_plot_item(self, i):
+        self.data[self.items[i]["x"]]["items"].remove(i)
+        self.data[self.items[i]["y"]]["items"].remove(i)
+        self.widget.removeItem(self.items[i]["plot"])
+        del self.items[i]
+
     def set_master(self, i):
         """Set which data series will trigger a plot update.
         
@@ -242,13 +257,7 @@ class Plot(QObject, Object):
         :type data: int
         """
         if self.master is not None and self.master != i:
-            if self.data[self.master]["data_type"] in \
-                    [Plot.TYPE_SCALAR, Plot.TYPE_SPECTRUM]:
-                self.data[self.master]["device"].value_changed.disconnect( \
-                        self.update_values)
-            elif self.data[self.master]["data_type"] == Plot.TYPE_TIME:
-                self.update_timer.timeout.disconnect(self.update_values)
-                self.update_timer.stop()
+            self.unset_master()
             self.data[i]["device"].value_changed.disconnect(self.update_values)
         if self.data[i]["data_type"] in [Plot.TYPE_SCALAR, Plot.TYPE_SPECTRUM]:
             self.data[i]["device"].value_changed.connect(self.update_values)
@@ -258,6 +267,15 @@ class Plot(QObject, Object):
             self.update_timer.start(self.data[i]["interval"] * 1000.)
         self.master = i
 
+    def unset_master(self):
+        if self.data[self.master]["data_type"] in \
+                [Plot.TYPE_SCALAR, Plot.TYPE_SPECTRUM]:
+            self.data[self.master]["device"].value_changed.disconnect( \
+                    self.update_values)
+        elif self.data[self.master]["data_type"] == Plot.TYPE_TIME:
+            self.update_timer.timeout.disconnect(self.update_values)
+            self.update_timer.stop()
+
     def tie_x_range(self, data=-1):
         """Sets the plot x range to be the same as the given data series.
         
@@ -265,3 +283,10 @@ class Plot(QObject, Object):
         :type data: int
         """
         self.x_range = data
+
+    def clear(self):
+        for i in self.data:
+            self.remove_plot_data(i)
+
+
+            

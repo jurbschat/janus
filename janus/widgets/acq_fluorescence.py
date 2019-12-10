@@ -1,8 +1,12 @@
-'''
-Created on Oct 14, 2019
+"""
+This is part of the janus package.
+"""
 
-@author: janmeyer
-'''
+__author__ = "Jan Meyer"
+__email__ = "jan.meyer@desy.de"
+__copyright__ = "(c)2019 DESY, FS-BMX, FS-Petra-D, P11"
+__license__ = "GPL"
+
 
 from PyQt5.QtCore import QObject
 from PyQt5.QtWidgets import QWidget
@@ -91,20 +95,3 @@ class AcqXanesParameters(QObject, Object):
         self.ui.spinBoxAcqXanesEmissionEnergy.setValue(emission_line)
 
 
-class AcqRunParameters(QObject, Object):
-
-    def __init__(self, parent=None):
-        Object.__init__(self)
-        QObject.__init__(self)
-        self.parent = parent
-        self.setup_ui()
-        self.connect_signals()
-
-    def setup_ui(self):
-        from janus.widgets.ui.acq_run_parameters_ui import Ui_FormAcqRun
-        self.widget = QWidget(self.parent)
-        self.ui = Ui_FormAcqRun()
-        self.ui.setupUi(self.widget)
-
-    def connect_signals(self):
-        pass

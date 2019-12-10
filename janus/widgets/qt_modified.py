@@ -2,6 +2,11 @@
 This is part of the janus package.
 """
 
+__author__ = "Jakob Urbschat, Jan Meyer"
+__email__ = "jakob.urbschat@desy.de, jan.meyer@desy.de"
+__copyright__ = "(c)2019 DESY, FS-BMX, FS-Petra-D, P11"
+__license__ = "GPL"
+
 
 from PyQt5.QtGui import QPainter, QPen
 from PyQt5.QtWidgets import QWidget, QDialog, QLabel, QComboBox, QSpinBox, \

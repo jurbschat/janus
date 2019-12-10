@@ -142,7 +142,7 @@
     <widget class="QPushButton" name="pushButtonStartAcq">
      <property name="text">
       <string>Start
-data collection</string>
+Data Collection</string>
      </property>
     </widget>
    </item>

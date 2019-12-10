@@ -38,13 +38,13 @@ class GridControls(QObject, Object):
         self.ui.chipOriginX.valueChanged.connect(lambda value: self.chip_origin_changed())
         self.ui.chipOriginY.valueChanged.connect(lambda value: self.chip_origin_changed())
         self.ui.saveUpdatedChipData.clicked.connect(lambda: self.save_chip_data())
-        self.ui.originalSize.clicked.connect(lambda checked: self.draw_original_changed(checked))
+        self.ui.fullWindowsOnly.clicked.connect(lambda checked: self.draw_original_changed(checked))
 
         self.grid_controller.beam_size.register(self.beam_size_external_change)
         self.grid_controller.beam_offset.register(self.beam_offset_external_change)
 
     def draw_original_changed(self, checked):
-        self.grid_controller.draw_original_size.set(checked)
+        self.grid_controller.generate_only_full_windows.set(checked)
 
     def chip_selection_changed(self, chip_name):
         if self.grid_controller.selected_chip_name.get() == chip_name:

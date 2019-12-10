@@ -2,8 +2,8 @@
 This is part of the janus package.
 """
 
-__author__ = "Jan Meyer"
-__email__ = "jan.meyer@desy.de"
+__author__ = "Jakob Urbschat, Jan Meyer"
+__email__ = "jakob.urbschat@desy.de, jan.meyer@desy.de"
 __copyright__ = "(c)2019 DESY, FS-BMX, FS-Petra-D, P11"
 __license__ = "GPL"
 
@@ -179,7 +179,7 @@ class SimulationConnector(Connector):
         if attribute in self.attributes.keys():
             self.attributes[attribute]["value"] = value
             if self.policy != UpdatePolicy.NO:
-                self.value_changed.emit(self.attributes[attribute]["name"])
+                self.value_changed.emit(attribute)
             return True
         return False
 

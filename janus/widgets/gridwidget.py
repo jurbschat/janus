@@ -120,21 +120,23 @@ class GridPainter:
 
     def draw_frame_info(self, transform, painter, info):
         painter.save()
-        t = QTransform().translate(10, 20)
+        t = QTransform().translate(0, 0)
         GridPainter.draw_text_with_bg(
             t,
             painter,
             "scale: {}%".format(int(info.view_zoom_factor * 100)),
             Qt.white,
-            QColor(0, 0, 0, 128)
+            QColor(0, 0, 0, 128),
+            6
         )
-        t = QTransform().translate(painter.device().width() - 100, 20)
+        t = QTransform().translate(painter.device().width(), 0)
         GridPainter.draw_text_with_bg(
             t,
             painter,
             "frame: {:02} (fps: {:02})".format(self.frameCount, self.fps),
             Qt.white,
-            QColor(0, 0, 0, 128)
+            QColor(0, 0, 0, 128),
+            8
         )
         self.frameCount = self.frameCount + 1
         if time.time() - self.frameStart >= 1:
@@ -221,20 +223,73 @@ class GridPainter:
         painter.restore()
 
     @staticmethod
+    def point_to_px(point, dpi):
+        p = QPointF(point.x() / 94, point.y() / 94)
+        p = QPointF(p.x() * dpi.x(), p.y() * dpi.y())
+        return p
+
+    @staticmethod
+    def px_to_point(px, dpi):
+        return px * 72 / dpi
+
+    @staticmethod
     # anchor form is from upper left corner to lower right in a 9 patch style
     def draw_text_with_bg(transform, painter, text, color, bg_color, anchor=0):
-        painter.save()
-        painter.setTransform(transform)
         font_height = painter.fontMetrics().height()
         text_len = painter.fontMetrics().width(text)
-        bg_rect = QRect(-5, -5, text_len + 10, font_height + 5)
-        bg_rect.translate(0, -font_height + 5)
-        anchor_offset = QPointF(bg_rect.width() * (anchor % 3) / 2, bg_rect.height() * int(anchor / 3) / 2)
-        painter.translate(anchor_offset.x(), -anchor_offset.y())
+        text_ascent = painter.fontMetrics().ascent()
+        text_size = QPointF(text_len, font_height)
+        bg_rect = QRect(0, 0, text_size.x() + 10, text_size.y() + 10)
+        anchor_offset = QPointF(
+            bg_rect.width() * (anchor % 3) / 2,
+            bg_rect.height() * int(anchor / 3) / 2
+        )
+        anchor_offset -= QPointF(0, bg_rect.height())
+        painter.save()
+        painter.setTransform(transform)
+        painter.translate(-anchor_offset.x(), anchor_offset.y())
         painter.fillRect(bg_rect, bg_color)
         painter.setPen(color)
-        painter.drawText(0, 0, text)
+        painter.drawText(5, bg_rect.height() / 2 + text_ascent / 2, text)
+        painter.restore()
 
+    @staticmethod
+    def draw_scale(transform, painter, default_um, zoom):
+        target_length = default_um * GridConstants.muToPixelRatio
+        length = default_um * GridConstants.muToPixelRatio * zoom
+        display_um = default_um
+        um_scale = 1
+        while(abs(length - target_length) > target_length * 0.5):
+            if length - target_length > 0:
+                length /= 2
+                display_um /= 2
+                um_scale /= 2
+            elif length - target_length < 0:
+                length *= 2
+                display_um *= 2
+                um_scale *= 2
+            else:
+                break
+        #base_offset = math.log(um_scale, 1000)
+        #base_offset = math.ceil(base_offset) if um_scale < 1 else math.floor(base_offset)
+        #suffix = ["m", "mm", "um", "nm", "am"][2 - base_offset] # we start at um
+        text = "{} um".format(display_um)
+        text_len = painter.fontMetrics().width(text)
+        text_ascent = painter.fontMetrics().ascent()
+        height = 10
+        bg_rect = QRect(0, 0, length + 10, height + 20)
+        pos = QPointF(painter.device().width() - bg_rect.width(), painter.device().height() - bg_rect.height())
+        scale_position = QTransform().translate(pos.x(), pos.y())
+        bg_color = QColor(0, 0, 0, 128)
+        painter.save()
+        painter.setTransform(scale_position)
+        painter.fillRect(bg_rect, bg_color)
+        painter.translate(5, 15)
+        painter.setPen(Qt.white)
+        painter.drawLine(QPointF(0, 0), QPointF(0, 10))
+        painter.drawLine(QPointF(0, 5), QPointF(length, 5))
+        painter.drawLine(QPointF(length, 0), QPointF(length, 10))
+        painter.drawText(length / 2 - text_len / 2, 1, text)
         painter.restore()
 
 
@@ -406,7 +461,7 @@ class MouseKeyboardState:
         self.downMap = {}
         self.keyMap = {}
         self.btnMap = {}
-        self._mouse_pos = QPoint(0, 0)
+        self._mouse_pos = QPointF(0, 0)
         self.exclusiveCapture = exclusiveCapture
 
     def injectEvent(self, source, event):
@@ -430,7 +485,7 @@ class MouseKeyboardState:
             return self.exclusiveCapture
         elif event.type() == QEvent.MouseMove:
             old_pos = self._mouse_pos
-            self._mouse_pos = event.pos()
+            self._mouse_pos = QPointF(event.pos())
             if old_pos != self._mouse_pos:
                 self.on_mouse_moved(old_pos, self._mouse_pos, self._mouse_pos - old_pos)
                 return self.exclusiveCapture
@@ -524,7 +579,8 @@ class MoveGridState(BaseGridState, MouseKeyboardState):
             if QVector2D(rect_points[0] - rect_points[1]).length() <= 0.1 or QVector2D(rect_points[0] - rect_points[2]).length() <= 0.1:
                 return
             chip = self.grid_widget.chip_registry.get_chip(self.grid_controller.selected_chip_name.get())
-            self.grid_controller.update_generator(ChipPointGenerator(rect_points, chip))
+            full_windows = self.grid_controller.generate_only_full_windows.get()
+            self.grid_controller.update_generator(ChipPointGenerator(rect_points, chip, full_windows))
             self.grid_widget.state_data.transforms[GridTransform.POINT_TRANSFORM] = QTransform()
             self.translated_pos = QPointF(0, 0)
             self.grid_widget.update()
@@ -681,7 +737,8 @@ class RotateGridState(BaseGridState, MouseKeyboardState, FeatureSelectorState):
         point_transform.translate(-self.rotation_origin_sample.x(), -self.rotation_origin_sample.y())
         rect_points = [p * point_transform for p in self.grid_controller.bounding_points]
         chip = self.grid_widget.chip_registry.get_chip(self.grid_widget.grid_controller.selected_chip_name.get())
-        self.grid_controller.update_generator(ChipPointGenerator(rect_points, chip))
+        full_windows = self.grid_controller.generate_only_full_windows.get()
+        self.grid_controller.update_generator(ChipPointGenerator(rect_points, chip, full_windows))
         self.grid_widget.state_data.transforms[GridTransform.POINT_TRANSFORM] = QTransform()
         self.angle = 0
         self.grid_widget.update()
@@ -758,7 +815,8 @@ class ChangeGridDimensionState(BaseGridState, MouseKeyboardState, FeatureSelecto
             return
         if self.bounding_points != self.grid_controller.bounding_points:
             chip = self.grid_widget.chip_registry.get_chip(self.grid_widget.grid_controller.selected_chip_name.get())
-            self.grid_controller.update_generator(ChipPointGenerator(self.bounding_points, chip))
+            full_windows = self.grid_controller.generate_only_full_windows.get()
+            self.grid_controller.update_generator(ChipPointGenerator(self.bounding_points, chip, full_windows))
         self.bounding_points = None
         self.active_handle = None
         self.mouse_offset = QPointF(0, 0)
@@ -833,6 +891,7 @@ class BuildGridByChipState(BaseGridState, MouseKeyboardState):
         MouseKeyboardState.__init__(self, False)
         self.points = []
         self.handleSize = 10
+        self.grid_controller = grid_widget.grid_controller
 
     def __del__(self):
         pass
@@ -866,7 +925,8 @@ class BuildGridByChipState(BaseGridState, MouseKeyboardState):
     def build_new_grid(self):
         chip = self.grid_widget.chip_registry.get_chip(self.grid_widget.grid_controller.selected_chip_name.get())
         bounding_points = self.build_boundingbox_from_points(self.points[0], self.points[1], chip.chip_size)
-        self.grid_widget.grid_controller.update_generator(ChipPointGenerator(bounding_points, chip))
+        full_windows = self.grid_controller.generate_only_full_windows.get()
+        self.grid_widget.grid_controller.update_generator(ChipPointGenerator(bounding_points, chip, full_windows))
         self.points = []
         self.grid_widget.update()
         self.grid_widget.remove_states([self], GridWidgetAction.TRANSFORM)
@@ -914,6 +974,7 @@ class BuildGridByThreePointState(BaseGridState, MouseKeyboardState):
         MouseKeyboardState.__init__(self, False)
         self.points = []
         self.handleSize = 10
+        self.grid_controller = grid_widget.grid_controller
 
     def inject_event(self, source, event):
         MouseKeyboardState.injectEvent(self, source, event)
@@ -971,7 +1032,8 @@ class BuildGridByThreePointState(BaseGridState, MouseKeyboardState):
         p2 = self.points[0] + v0 + v1
         p3 = self.points[2]
         bounding_points = [p0, p1, p2, p3]
-        self.grid_widget.grid_controller.update_generator(ChipPointGenerator(bounding_points, chip))
+        full_windows = self.grid_controller.generate_only_full_windows.get()
+        self.grid_widget.grid_controller.update_generator(ChipPointGenerator(bounding_points, chip, full_windows))
         self.points = []
         self.grid_widget.update()
         self.grid_widget.remove_states([self], GridWidgetAction.TRANSFORM)
@@ -1329,6 +1391,14 @@ class Center9PatchAnchorInViewState(BaseGridState, MouseKeyboardState):
     def paint_priority(self):
         return StateUpdatePriority.paint[StateUpdatePriority.CENTER_9PATCH_ANCHOR]
 
+
+class MeasureState(BaseGridState, MouseKeyboardState):
+    def __init__(self, grid_widget):
+        BaseGridState.__init__(self, grid_widget)
+        MouseKeyboardState.__init__(self, False)
+
+
+
 #
 # actual qwidget
 #
@@ -1406,7 +1476,7 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         self.camera.value_changed.connect(self.on_camera_value_changed)
         self.update_tick_signal.connect(lambda: self.update)
         self.grid_controller.selected_chip_name.register(self.on_chip_changed)
-        self.grid_controller.draw_original_size.register(self.on_draw_original_size_changed)
+        self.grid_controller.generate_only_full_windows.register(self.on_generate_full_windows_only_changed)
 
     def eventFilter(self, source, event):
         for s in reversed(sorted(self.activeStates, key= lambda s: s.input_priority())):
@@ -1419,10 +1489,13 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
             return
         bp = self.grid_controller.bounding_points
         chip = self.chip_registry.get_chip(new_value)
-        self.grid_controller.update_generator(ChipPointGenerator(bp, chip))
+        full_windows = self.grid_controller.generate_only_full_windows.get()
+        self.grid_controller.update_generator(ChipPointGenerator(bp, chip, full_windows))
 
-    def on_draw_original_size_changed(self, new_value):
-        self.updateImageScaling()
+    def on_generate_full_windows_only_changed(self, new_value):
+        #TODO regeenrate points
+        #todo: redraw
+        pass
 
     def on_camera_value_changed(self, attribute):
         if self.camera and attribute == "image":
@@ -1553,8 +1626,6 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         #TODO: set clipping rect to the actual image area
         #TODO: beamlign work even after beamligne state is "hidden"...
         #TODO: cursor wrong when in place state => should eat mouse events
-        #TODo: camera scale in cordner mu/px
-        # disable outer border of bb
         # create shutter array with on/off data
         # scanner device für xfel/resf/etc...
         # mark last unfinished window red
@@ -1568,6 +1639,7 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
                                        beam_offset * GridConstants.muToPixelRatio)
         for s in sorted(self.activeStates, key=lambda s: s.paint_priority()):
             s.do_paint(view_transform, painter)
+        self.grid_painter.draw_scale(view_transform, painter, 100, self.state_data.view_zoom_factor)
         self.grid_painter.draw_frame_info(view_transform, painter, self.state_data)
         GridPainter.draw_widget_border(painter)
 
@@ -1612,6 +1684,7 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
 
     def handle_action_clear(self, checked):
         self.grid_controller.clear()
+        self.update()
 
     def handle_action_transform(self, checked):
         self.reset_states()

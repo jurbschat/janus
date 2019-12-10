@@ -15,7 +15,7 @@ from janus.core import Application
 from janus.utils.log import Logger, LogHandler
 from janus.utils.config import Config
 from janus.devices.camera import VimbaCamera
-from janus.controllers.gridcontroller import GridController, AABBPointGenerator, ChipPointGenerator
+from janus.controllers.gridcontroller import GridController, ChipPointGenerator
 from janus.controllers.axiscontroller import AxisController
 from janus.controllers.chipregistry import ChipRegistry
 #from janus.devices.autofocuscontroller import AutofocusController
@@ -110,9 +110,9 @@ class LiveView(Application):
                 QPointF(0, 0),
                 QPointF(chip.chip_size.x(), 0),
                 QPointF(chip.chip_size.x(), chip.chip_size.y()),
-                QPointF(0, chip.chip_size.y())
+                QPointF(0, chip.chip_size.y()),
             ], 
-            chip))
+            chip, False))
         #self.janus.controllers["grid"] = GridController()
 
     def init_widgets(self):
@@ -157,6 +157,7 @@ class LiveView(Application):
         self.janus.widgets["motorControls"] = motorControls
         scrollAreaLAyout.addWidget(motorControls.widget)
 
+        # beamprofile controls
         beamProfile = BeamProfile(parent=scrollAreaWidget)
         self.janus.widgets["beamProfile"] = beamProfile
         scrollAreaLAyout.addWidget(beamProfile.widget)
