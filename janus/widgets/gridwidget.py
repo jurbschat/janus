@@ -1,17 +1,25 @@
 import time
 import math
-#import glm
 import numpy as np
-import gc
 
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+'''
+    hardware setup/change: 
+        - make sure motor units match up to real world units
+        - make sure the pixel/mu conversion is correct (e.g. thorlabs grid plate)
+        - make sure the xy directions match with the motors, otherwise invert motor
+'''
 
-from janus.controllers.gridcontroller import ChipPointGenerator
+from PyQt5.QtCore import Qt, QEvent, QPointF, QPoint, QLineF, QRect, QRectF, \
+        QSize, QTimer, QSizeF, pyqtSignal
+from PyQt5.QtGui import QPainter, QTransform, QColor, QPen, QVector2D, QImage, \
+        QPixelFormat, QBrush, QPainterPath
+from PyQt5.QtWidgets import QWidget, QSizePolicy, QMessageBox, QFileDialog
+
 from ..core import Object
-from janus.utils.eventhub import global_event_hub, Event as EHEvent, EventType as EHEventType
-
+from ..controllers.gridcontroller import ChipPointGenerator
+from ..controllers.axiscontroller import GridAxisNames
+from ..utils.eventhub import global_event_hub, Event as EHEvent, EventType as EHEventType
+from PyTango import Database, EventType, ExtractAs
 #
 # utility stuff
 #
@@ -27,7 +35,8 @@ def print_qtrans(trans):
     ])
 
 class GridConstants:
-    muToPixelRatio = 1.667 # 1mu = 1.667 pixels
+    #muToPixelRatio = 1.667 # 1mu = 1.667 pixels
+    muToPixelRatio = 3.22 / (5 / 2) # 1mu = 3.22 pixels
 
     @staticmethod
     def to_pixel(value):
@@ -50,13 +59,6 @@ class GridConstants:
         [bugs]
             - align button still works even if the action is removed from the list, where is the reference?
     '''
-
-
-class GridHelpers:
-    @staticmethod
-    def point_in_rect(point, rect):
-        rect.contains(point)
-
 
 class GridWidgetAction:
     TRANSFORM = 1
@@ -81,13 +83,6 @@ class GridMovementPositions:
     LOWER_LEFT = 5
     LOWER_MIDDLE = 6
     LOWER_RIGHT = 7
-
-
-class GridAxisNames:
-    AXIS_X = "grid_x"
-    AXIS_Y = "grid_y"
-    AXIS_Z = "grid_z"
-
 
 class GridPainter:
     def __init__(self):
@@ -114,9 +109,29 @@ class GridPainter:
         if image is not None:
             painter.save()
             painter.setTransform(transform)
+            painter.scale(1, -1)
+            painter.translate(0, -image.size().height())
             full_rect = QRect(0, 0, image.size().width(), image.size().height())
             painter.drawImage(QRect(0, 0, int(full_rect.width()), int(full_rect.height())), image, full_rect)
             painter.restore()
+
+    @staticmethod
+    def draw_soft_limits(transform, painter, soft_limits):
+        brush = QBrush(Qt.red, Qt.FDiagPattern)
+        soft_limit_rect = QRectF(soft_limits[0], soft_limits[1], soft_limits[2], soft_limits[3])
+        rect_outer = QRectF(soft_limit_rect)
+        rect_outer.adjust(-1000, -1000, 1000, 1000)
+        path = QPainterPath()
+        path.addRect(rect_outer)
+        path.addRect(soft_limit_rect)
+        painter.save()
+        painter.setTransform(transform)
+        #painter.setRenderHint(QPainter.Antialiasing)
+        #painter.setRenderHint(QPainter.SmoothPixmapTransform)
+        painter.fillPath(path, brush)
+        painter.setPen(Qt.red)
+        painter.drawRect(soft_limit_rect)
+        painter.restore()
 
     def draw_frame_info(self, transform, painter, info):
         painter.save()
@@ -146,7 +161,7 @@ class GridPainter:
         painter.restore()
 
     @staticmethod
-    def draw_boundingbox_with_handles(transform, painter, rect):
+    def draw_boundingbox_with_handles(transform, painter, rect, beam_size):
         p0 = rect[0]
         p1 = rect[1]
         p2 = rect[2]
@@ -168,7 +183,7 @@ class GridPainter:
 
         painter.setPen(Qt.yellow)
         painter.setBrush(Qt.yellow)
-        size = 10
+        size = beam_size / 4
         half_size = size / 2
         painter.drawEllipse(p0, half_size, half_size)
         painter.drawEllipse(p1, half_size, half_size)
@@ -189,6 +204,21 @@ class GridPainter:
             color = QColor(meta["color"][0], meta["color"][1], meta["color"][2])
             painter.setPen(QPen(color, pen_size))
             painter.drawEllipse(QPointF(point_mu[0], point_mu[1]), beam_size_center_offset, beam_size_center_offset)
+        painter.restore()
+
+    @staticmethod
+    def draw_window_borders(transform, painter, window_points, window_size, grid_bounding_box):
+        painter.save()
+        painter.setTransform(transform)
+        painter.setPen(QPen(QColor(0, 192, 0), 0.5))
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.translate(grid_bounding_box[0])
+        vec = grid_bounding_box[1] - grid_bounding_box[0]
+        angle = math.atan2(vec.y(), vec.x())
+        painter.rotate(math.degrees(angle))
+        for point in window_points:
+            grid_bounding_box = QRectF(QPointF(point[0], point[1]), QPointF(point[0] + window_size.x(), point[1] + window_size.y()))
+            painter.drawRect(grid_bounding_box)
         painter.restore()
 
     @staticmethod
@@ -845,7 +875,8 @@ class ChangeGridDimensionState(BaseGridState, MouseKeyboardState, FeatureSelecto
             return
         if self.bounding_points is not None:
             t = self.grid_widget.screen_to_sample_transform()
-            GridPainter.draw_boundingbox_with_handles(t, painter, self.bounding_points)
+            beam_size = self.grid_controller.beam_size.get()
+            GridPainter.draw_boundingbox_with_handles(t, painter, self.bounding_points, GridConstants.to_pixel(beam_size))
 
     def input_priority(self):
         return StateUpdatePriority.input[StateUpdatePriority.CHANGE_GRID_DIMENSION]
@@ -956,7 +987,8 @@ class BuildGridByChipState(BaseGridState, MouseKeyboardState):
                 points = self.build_boundingbox_from_points(self.points[0], self.points[0] + QPointF(0, 1), chip.chip_size)
             else:
                 points = self.build_boundingbox_from_points(self.points[0], mouseInSample, chip.chip_size)
-            GridPainter.draw_boundingbox_with_handles(model_view, painter, points)
+            beam_size = self.grid_controller.beam_size.get()
+            GridPainter.draw_boundingbox_with_handles(model_view, painter, points, GridConstants.to_pixel(beam_size))
 
     def input_priority(self):
         return StateUpdatePriority.input[StateUpdatePriority.PLACE_CHIP]
@@ -1322,10 +1354,13 @@ class Center9PatchAnchorInViewState(BaseGridState, MouseKeyboardState):
     def convert_buttons(self, buttons, view_size):
         converted = []
         for btn in buttons:
-            normalizedPos = QVector2D(btn[0]).normalized()
-            btn_size = btn[0].zw
-            btn_screen_pos = normalizedPos * view_size - (normalizedPos * btn_size)
-            btn_screen_rect = QRectF(btn_screen_pos, btn[0].zw)
+            normalized_pos = btn[0]
+            btn_size = self.button_size
+            btn_screen_pos = QPointF(
+                normalized_pos.x() * view_size.x() - (normalized_pos.x() * btn_size),
+                normalized_pos.y() * view_size.y() - (normalized_pos.y() * btn_size)
+            )
+            btn_screen_rect = QRectF(btn_screen_pos, QSizeF(btn_size, btn_size))
             tpl = (btn[0], btn_screen_rect, btn[1], btn[2], btn[3])
             converted.append(tpl)
         return converted
@@ -1347,7 +1382,7 @@ class Center9PatchAnchorInViewState(BaseGridState, MouseKeyboardState):
     def find_button_for_position(self, pos):
         for i, btn in enumerate(self.buttons):
             rect = btn[1]
-            if GridHelpers.point_in_rect(pos, rect):
+            if rect.contains(pos):
                 return i
         return -1
 
@@ -1431,6 +1466,9 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         self.setup_ui()
         self.connect_signals()
         self.start_update_tick()
+        default_image = QImage(QSize(512, 512), QImage.Format_Grayscale8)
+        default_image.fill(Qt.black)
+        self.update_from_camera(default_image)
 
     def __del__(self):
         self.grid_controller.selected_chip_name.unregister(self.on_chip_changed)
@@ -1476,7 +1514,7 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         self.camera.value_changed.connect(self.on_camera_value_changed)
         self.update_tick_signal.connect(lambda: self.update)
         self.grid_controller.selected_chip_name.register(self.on_chip_changed)
-        self.grid_controller.generate_only_full_windows.register(self.on_generate_full_windows_only_changed)
+        #self.grid_controller.generate_only_full_windows.register(self.on_generate_full_windows_only_changed)
 
     def eventFilter(self, source, event):
         for s in reversed(sorted(self.activeStates, key= lambda s: s.input_priority())):
@@ -1492,31 +1530,36 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         full_windows = self.grid_controller.generate_only_full_windows.get()
         self.grid_controller.update_generator(ChipPointGenerator(bp, chip, full_windows))
 
-    def on_generate_full_windows_only_changed(self, new_value):
-        #TODO regeenrate points
-        #todo: redraw
-        pass
+    #def on_generate_full_windows_only_changed(self, new_value):
+    #    #TODO regeenrate points
+    #    #todo: redraw
+    #    pass
 
     def on_camera_value_changed(self, attribute):
-        if self.camera and attribute == "image":
-            self.update_from_camera()
+        if self.camera and attribute == "image_8":
+            image8 = self.camera.connector.proxy.read_attribute("image8").value
+            image8 = image8.astype(np.uint8, order='C', casting='unsafe')
+            height, width = image8.shape
+            bytes_per_line = 1 * width
+            image = QImage(image8.data, width, height, bytes_per_line, QImage.Format_Grayscale8)
+            self.update_from_camera(image)
 
-    def update_from_camera(self):
-        if self.camera:
-            frame = self.camera.image()
-            if frame is not None:
-                # we can get corrupted jpeg frames.. duno why
-                new_size = QPointF(frame.width(), frame.height())
-                if new_size.x() == 0 or new_size.y() == 0:
-                    return
-                image_size = self.get_image_size()
-                self.image = frame
-                for s in sorted(self.activeStates, key=lambda s: s.input_priority()):
-                    s.image_changed(self.image)
+    def update_from_camera(self, image):
+        if image is not None:
+            # we can get corrupted jpeg frames.. duno why
+            new_size = QPointF(image.width(), image.height())
+            if new_size.x() == 0 or new_size.y() == 0:
+                return
+            self.image = image
+            image_center = GridConstants.to_mu(new_size / 2)
+            if self.grid_controller.beam_center_reference.get() != image_center:
+                self.grid_controller.beam_center_reference.set(image_center)
+            for s in sorted(self.activeStates, key=lambda s: s.input_priority()):
+                s.image_changed(self.image)
         self.update()
 
     def set_sample_position(self, position):
-        self._move_sample_position(position)
+        self.move_sample_motors(position)
 
     def query_sample_position(self):
         x = self.axis_controller.get_position(GridAxisNames.AXIS_X)
@@ -1524,9 +1567,9 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         offset = QPointF(x, y)
         return offset
 
-    def _move_sample_position(self, position):
-        self.axis_controller.set_position(GridAxisNames.AXIS_X, position.x())
-        self.axis_controller.set_position(GridAxisNames.AXIS_Y, position.y())
+    def move_sample_motors(self, position):
+        self.axis_controller.set_position(GridAxisNames.AXIS_X, position.x(), True)
+        self.axis_controller.set_position(GridAxisNames.AXIS_Y, position.y(), True)
 
     def view_to_sample_transform(self):
         return self.transforms[GridTransform.POINT_TRANSFORM] * \
@@ -1536,6 +1579,11 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
     def screen_to_sample_transform(self):
         return self.transforms[GridTransform.POINT_TRANSFORM] * \
                self.transforms[GridTransform.SAMPLE_POSITION] * \
+               self.transforms[GridTransform.SAMPLE_SCALING] * \
+               self.transforms[GridTransform.VIEW]
+
+    def fixed_screen_to_sample_transform(self):
+        return self.transforms[GridTransform.SAMPLE_POSITION] * \
                self.transforms[GridTransform.SAMPLE_SCALING] * \
                self.transforms[GridTransform.VIEW]
 
@@ -1596,6 +1644,22 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
         elif key == Qt.Key_Control:
             self.remove_states_by_type([ChangeGridCameraState])
 
+    def get_visual_soft_limits(self):
+        soft_limits = self.axis_controller.get_limits()
+        x = soft_limits[GridAxisNames.AXIS_X]
+        y = soft_limits[GridAxisNames.AXIS_Y]
+        #r = QRectF(0, 0, abs(x[0] - x[1]), abs(y[0] - y[1]))
+        #r.translate(-x[1], -y[1])
+        #a = QPointF(-x[1], -y[1])
+        #b = QPointF(abs(x[0] - x[1]), abs(y[0] - y[1]))
+        beam_offset = self.grid_controller.beam_center_reference.get() + self.grid_controller.beam_offset.get()
+        return [
+            -x[1] + beam_offset.x(),
+            -y[1] + beam_offset.y(),
+            abs(x[0] - x[1]),
+            abs(y[0] - y[1])
+        ]
+
     def paintEvent(self, event):
         if self.image is None:
             return
@@ -1616,27 +1680,26 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
 
         beam_size = self.grid_controller.beam_size.get()
         beam_offset = self.grid_controller.beam_offset.get()
+        visual_soft_limits = self.get_visual_soft_limits()
 
         self.transforms[GridTransform.SAMPLE_POSITION] = QTransform().translate(sample_offset.x(), sample_offset.y())
 
         view_transform = self.transforms[GridTransform.VIEW]
         sample_scale = self.transforms[GridTransform.SAMPLE_SCALING]
         screen_to_sample_transform = self.screen_to_sample_transform()
+        fixed_screen_to_sample_transform = self.fixed_screen_to_sample_transform()
 
-        #TODO: set clipping rect to the actual image area
         #TODO: beamlign work even after beamligne state is "hidden"...
-        #TODO: cursor wrong when in place state => should eat mouse events
-        # create shutter array with on/off data
-        # scanner device für xfel/resf/etc...
-        # mark last unfinished window red
         self.grid_painter.draw_onaxis(view_transform, painter, self.image)
+        GridPainter.draw_soft_limits(fixed_screen_to_sample_transform, painter, visual_soft_limits)
         GridPainter.draw_points(screen_to_sample_transform, painter, pointsMu, metaInfo, beam_size)
-        GridPainter.draw_boundingbox_with_handles(screen_to_sample_transform, painter, self.grid_controller.bounding_points)
+        GridPainter.draw_window_borders(screen_to_sample_transform, painter, self.grid_controller.window_points, self.grid_controller.chip.window_size, self.grid_controller.bounding_points)
+        GridPainter.draw_boundingbox_with_handles(screen_to_sample_transform, painter, self.grid_controller.bounding_points, GridConstants.to_pixel(beam_size))
         GridPainter.draw_beam_position(view_transform,
                                        self.get_image_size(),
                                        painter,
-                                       beam_size * GridConstants.muToPixelRatio,
-                                       beam_offset * GridConstants.muToPixelRatio)
+                                       GridConstants.to_pixel(beam_size),
+                                       GridConstants.to_pixel(beam_offset))
         for s in sorted(self.activeStates, key=lambda s: s.paint_priority()):
             s.do_paint(view_transform, painter)
         self.grid_painter.draw_scale(view_transform, painter, 100, self.state_data.view_zoom_factor)
@@ -1704,6 +1767,10 @@ class GridWidget(QWidget, Object, MouseKeyboardState):
             return
         if self.image:
             self.image.save(name[0])
+            #TODO: what is better?
+            #pixmap = QPixmap(self.size())
+            #self.render(pixmap)
+            #pixmap.save("test.png")
         else:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)

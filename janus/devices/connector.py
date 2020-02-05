@@ -11,11 +11,13 @@ __license__ = "GPL"
 from time import time
 from random import random
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, QTimer
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QPixmap
 from PyTango import DeviceProxy, EventType
 from ..core import Object
 from ..const import State, UpdatePolicy
 from .devicebase import DeviceBase
+import threading
+import time
 
 
 class Connector(QObject, Object, DeviceBase):
@@ -143,6 +145,9 @@ class Connector(QObject, Object, DeviceBase):
         """
         pass
 
+    def stop_device(self):
+        pass
+
 
 class SimulationConnector(Connector):
 
@@ -239,15 +244,16 @@ class VimbaCameraSimulationConnector(Connector):
             self.value_changed.emit(self.attributes[attribute]["attr"])
 
 
-class TangoConnector(QThread, Connector):
+class TangoConnector(Connector):
 
     value_changed = pyqtSignal(str, name="valueChanged")
 
     def __init__(self, uri=None, attributes=[], policy=UpdatePolicy.POLLING, interval=1.0):
-        QThread.__init__(self)
+        #QThread.__init__(self)
         self.alive = False
         self.connected = False
         self.poll_attributes = {}
+        self.thread = threading.Thread(target=self.run, name=uri)
         try:
             self.proxy = DeviceProxy(uri)
             self.connected = True
@@ -287,8 +293,8 @@ class TangoConnector(QThread, Connector):
                             "failed to unsubscribe from tango event")
                     self.janus.utils["logger"].debug("", exc_info=True)
                 del self.attributes[attr]["event"]
-        if policy == UpdatePolicy.POLLING and not self.isRunning():
-            self.start()
+        if policy == UpdatePolicy.POLLING and not self.thread.is_alive():
+            self.thread.start()
         elif policy == UpdatePolicy.EVENTBASED:
             for attr in self.attributes.keys:
                 try:
@@ -319,13 +325,15 @@ class TangoConnector(QThread, Connector):
         
     def stop(self):
         self.alive = False
-        self.wait()
+        self.thread.join()
+        pass
 
     def run(self):
+        print("thread started: {} ({})".format(threading.get_ident(), threading.currentThread().getName()))
         self.alive = True
         while self.alive:
             #remember when we started
-            timestamp = time()
+            timestamp = time.time()
             #try to poll attributes
             try:
                 attrs = self.proxy.read_attributes(list(self.poll_attributes.keys()))
@@ -348,6 +356,8 @@ class TangoConnector(QThread, Connector):
                 elif name == "state" and \
                         int(self.attributes[name]["value"]) != int(attr.value):
                     changed = True
+                elif name == "image_8":
+                    changed = True
                 elif self.attributes[name]["value"] != attr.value:
                     changed = True
                 if changed:
@@ -359,16 +369,17 @@ class TangoConnector(QThread, Connector):
                 if not self.alive:
                     break
             #wait for the rest of the polling interval
-            interval = int((self.interval - (time() - timestamp)) * 1000)
+            interval = int((self.interval - (time.time() - timestamp)))
             while interval > 0:
-                if interval > 50:
-                    self.msleep(50)
-                    interval -= 50
+                if interval > 0.05:
+                    time.sleep(0.05)
+                    interval -= 0.05
                 else:
-                    self.msleep(interval)
+                    time.sleep(interval)
                     interval = 0
                 if not self.alive:
                     break
+        print("closing thread: {} ({})".format(threading.get_ident(), threading.currentThread().getName()))
 
     def state(self, refresh=False):
         if refresh:

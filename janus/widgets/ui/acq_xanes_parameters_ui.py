@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'janus/widgets/ui/acq_xanes_parameters.ui'
+# Form implementation generated from reading ui file 'acq_xanes_parameters.ui'
 #
 # Created by: PyQt5 UI code generator 5.7
 #
@@ -83,17 +83,17 @@ class Ui_FormAcqXanes(object):
         self.spinBoxAcqXanesEmissionEnergy.setProperty("value", 11000)
         self.spinBoxAcqXanesEmissionEnergy.setObjectName("spinBoxAcqXanesEmissionEnergy")
         self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole, self.spinBoxAcqXanesEmissionEnergy)
-        self.spinBoxAcqXrfRoiWidth = QtWidgets.QSpinBox(FormAcqXanes)
-        self.spinBoxAcqXrfRoiWidth.setMaximum(500)
-        self.spinBoxAcqXrfRoiWidth.setProperty("value", 10)
-        self.spinBoxAcqXrfRoiWidth.setObjectName("spinBoxAcqXrfRoiWidth")
-        self.formLayout.setWidget(9, QtWidgets.QFormLayout.FieldRole, self.spinBoxAcqXrfRoiWidth)
+        self.spinBoxAcqXanesRoiWidth = QtWidgets.QSpinBox(FormAcqXanes)
+        self.spinBoxAcqXanesRoiWidth.setMaximum(500)
+        self.spinBoxAcqXanesRoiWidth.setProperty("value", 10)
+        self.spinBoxAcqXanesRoiWidth.setObjectName("spinBoxAcqXanesRoiWidth")
+        self.formLayout.setWidget(9, QtWidgets.QFormLayout.FieldRole, self.spinBoxAcqXanesRoiWidth)
         self.label_8 = QtWidgets.QLabel(FormAcqXanes)
         self.label_8.setObjectName("label_8")
         self.formLayout.setWidget(8, QtWidgets.QFormLayout.LabelRole, self.label_8)
-        self.label_9 = QtWidgets.QLabel(FormAcqXanes)
-        self.label_9.setObjectName("label_9")
-        self.formLayout.setWidget(9, QtWidgets.QFormLayout.LabelRole, self.label_9)
+        self.labelAcqXanesRoiWidth = QtWidgets.QLabel(FormAcqXanes)
+        self.labelAcqXanesRoiWidth.setObjectName("labelAcqXanesRoiWidth")
+        self.formLayout.setWidget(9, QtWidgets.QFormLayout.LabelRole, self.labelAcqXanesRoiWidth)
 
         self.retranslateUi(FormAcqXanes)
         QtCore.QMetaObject.connectSlotsByName(FormAcqXanes)
@@ -119,9 +119,9 @@ class Ui_FormAcqXanes(object):
         self.spinBoxAcqXanesEnergyStop.setSuffix(_translate("FormAcqXanes", " eV"))
         self.labelAcqXanesVelocity.setText(_translate("FormAcqXanes", "Velocity"))
         self.spinBoxAcqXanesEmissionEnergy.setSuffix(_translate("FormAcqXanes", " eV"))
-        self.spinBoxAcqXrfRoiWidth.setSuffix(_translate("FormAcqXanes", " eV"))
-        self.spinBoxAcqXrfRoiWidth.setPrefix(_translate("FormAcqXanes", "+/- "))
+        self.spinBoxAcqXanesRoiWidth.setSuffix(_translate("FormAcqXanes", " eV"))
+        self.spinBoxAcqXanesRoiWidth.setPrefix(_translate("FormAcqXanes", "+/- "))
         self.label_8.setText(_translate("FormAcqXanes", "Emission line"))
-        self.label_9.setText(_translate("FormAcqXanes", "ROI width"))
+        self.labelAcqXanesRoiWidth.setText(_translate("FormAcqXanes", "ROI width"))
 
 from janus.widgets.qt_modified import QElementChooser

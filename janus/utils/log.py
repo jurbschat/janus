@@ -31,7 +31,12 @@ def Logger():
     if (not "initialized" in globals() or not initialized):
         __init__()
     return root_logger
-
+Logger.CRITICAL = logging.CRITICAL
+Logger.ERROR = logging.ERROR
+Logger.WARNING = logging.WARNING
+Logger.INFO = logging.INFO
+Logger.DEBUG = logging.DEBUG
+Logger.NOTSET = logging.NOTSET
 
 def StderrHandler():
     global initialized

@@ -96,7 +96,7 @@
     </widget>
    </item>
    <item row="5" column="0">
-    <widget class="QLabel" name="label_2">
+    <widget class="QLabel" name="labelAcqXrfEnergyMin">
      <property name="text">
       <string>Minimum Energy</string>
      </property>
@@ -110,7 +110,7 @@
     </widget>
    </item>
    <item row="6" column="0">
-    <widget class="QLabel" name="label_3">
+    <widget class="QLabel" name="labelAcqXrfEnergyMax">
      <property name="text">
       <string>Maximum Energy</string>
      </property>

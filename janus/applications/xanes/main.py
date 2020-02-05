@@ -21,10 +21,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../.
 from janus.core import Application
 from janus.utils.log import Logger, LogHandler, StdoutHandler
 from janus.utils.config import Config
+from janus.utils.path import P11Path
 from janus.widgets.log import Log
 from janus.widgets.plot import Plot
 from janus.widgets.acq import AcqRunParameters, AcqProgressDialog
-from janus.widgets.acq_fluorescence import AcqXrfParameters, AcqXanesParameters
+from janus.widgets.acq_fluorescence import AcqXrfParameters, AcqXanesParameters, \
+        AcqXrfElementsTable
 from janus.devices.fluorescence import Xspress3
 from janus.devices.generic import Device
 from janus.devices.p11 import P11Shutter, P11Filters
@@ -40,8 +42,10 @@ class Xanes(Application):
         if pre:
             self.janus.utils["logger"] = Logger()
             #self.janus.utils["loghandler"] = LogHandler()
+            StdoutHandler().setLevel(Logger.DEBUG)
             self.janus.utils["logger"].addHandler(StdoutHandler())
             self.janus.utils["config"] = Config("config.ini")
+            self.janus.utils["path"] = P11Path()
         if post:
             self.janus.utils["config"].load_persistent()
 
@@ -62,7 +66,14 @@ class Xanes(Application):
                 [{"name": "energy", "attr": "Energy", "mode": "write", "type": float},
                 {"name": "auto_brake", "attr": "AutoBrake", "mode": "write", "type": bool},
                 {"name": "brake", "attr": "Brake", "mode": "execute"},
-                {"name": "move", "attr": "Move", "mode": "execute"}])
+                {"name": "move", "attr": "Move", "mode": "execute"},
+                {"name": "stop", "attr": "Stop", "mode": "execute"}])
+        if connector == "simulation":
+            self.janus.devices["energy"].connector.write("energy", 12000)
+        connector, path = self.janus.utils["config"].geturi("devices", "machine")
+        self.janus.devices["machine"] = Device(connector, path,
+                [{"name": "energy", "attr": "Energy", "mode": "read", "type": float},
+                {"name": "current", "attr": "BeamCurrent", "mode": "read", "type": float}])
         connector, path = self.janus.utils["config"].geturi("devices", "filter")
         self.janus.devices["filter"] = P11Filters(connector, path)
         connector, path = self.janus.utils["config"].geturi("devices", "xspress3")
@@ -76,20 +87,17 @@ class Xanes(Application):
         self.janus.widgets["mainwindow"].resize(1368, 768)
         self.janus.widgets["mainwindow"].setCentralWidget(central_widget)
         #plot
+        plot_row_widget = QWidget(central_widget)
+        self.janus.widgets["plotlayout"] = QVBoxLayout(plot_row_widget)
         self.janus.widgets["plot"] = Plot(central_widget)
-        self.janus.widgets["plot"].add_plot_data(0, data_type=Plot.TYPE_STATIC,
-                data=self.janus.devices["xspress3"].bin_energies())
-        self.janus.widgets["plot"].add_plot_data(1, data_type=Plot.TYPE_SPECTRUM,
-                attr=self.janus.devices["xspress3"].channel1)
-#         self.janus.widgets["plot"].add_plot_data(2, data_type=Plot.TYPE_SCALAR, \
-#                 attr=self.janus.devices["pressure2"].pressure, length=300)
-        self.janus.widgets["plot"].add_plot_item(0, 0, 1)
-#         self.janus.widgets["plot"].add_plot_item(1, 0, 2, Qt.blue)
-        self.janus.widgets["plot"].tie_x_range(0)
         self.janus.widgets["plot"].widget.setSizePolicy(QSizePolicy(
                 QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding))
-        self.janus.widgets["plot"].widget.setLabels(left="events", bottom="eV")
-        self.janus.widgets["mainwindowlayout"].addWidget(self.janus.widgets["plot"].widget, 3)
+        self.janus.widgets["plot"].widget.setLabels(left="events [arbitrary unit]", bottom="energy [eV]")
+        self.janus.widgets["plot"].add_line_item(1, pos=6930.3, label="Co Kα1")
+        self.janus.widgets["plotlayout"].addWidget(self.janus.widgets["plot"].widget, 3)
+        self.janus.widgets["elementtable"] = AcqXrfElementsTable(plot_row_widget)
+        self.janus.widgets["plotlayout"].addWidget(self.janus.widgets["elementtable"].widget, 1)
+        self.janus.widgets["mainwindowlayout"].addWidget(plot_row_widget, 3)
         #acquisition methods
         methods_row_widget = QWidget(central_widget)
         self.janus.widgets["methodrowlayout"] = QVBoxLayout(methods_row_widget)

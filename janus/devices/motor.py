@@ -98,6 +98,7 @@ class TangoMotor(Motor):
     def __init__(self, connector=None, uri=None, updateInterval = 0.02):
         Motor.__init__(self)
         self.uri = uri
+        self.type = "Simulation"
         attributes = {}
         attributes["AerotechEnsemble"] = [ \
                 {"attr": "Position", "delta": 0.1},
@@ -198,9 +199,9 @@ class TangoMotor(Motor):
             self.connector.write("soft_limit_min", 0)
             self.connector.write("soft_limit_max", 0)
         self.last_soft_limit_min_fault = \
-                self.connector.read("soft_limit_min_fault", refresh=True)
+                self.soft_limit_min_fault(refresh=True)
         self.last_soft_limit_max_fault = \
-                self.connector.read("soft_limit_max_fault", refresh=True)
+                self.soft_limit_max_fault(refresh=True)
         self.last_state = self.connector.read("state", refresh=True)
         if self.type in ["OmsMaxV", "OmsVme58", "Simulation"]:
             self.connector.value_changed.connect(self.on_value_changed)
@@ -312,5 +313,3 @@ class TangoMotor(Motor):
             return self.connector.read("hard_limit_max_fault", refresh, alt)
         else:
             return False
-
-        

@@ -316,6 +316,6 @@ def ChemicalElement(z):
                 setattr(element, elements[0][i], elements[z][i])
         setattr(ChemicalElement, element.symbol.upper(), element)
     return element
-for z in range(1,119):
+for z in range(1, 119):
     ChemicalElement(z)
 

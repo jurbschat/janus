@@ -131,6 +131,7 @@ class VimbaCamera(Camera):
                 {"attr": "OffsetY", "name": "offset_y"},
                 {"attr": "WidthMax", "name": "width_max"},
                 {"attr": "HeightMax", "name": "height_max"},
+                {"attr": "Image8", "name": "image_8"},
         ]
         if connector == "simulation":
             attributes.append({"attr": "Image8", "name": "image_8"})
@@ -159,11 +160,11 @@ class VimbaCamera(Camera):
             self.connector = TangoConnector(uri, attributes)
             #start acquisition in right viewing mode and connect changed signal
             try:
-                self.connector.proxy.write_attribute("ViewingMode", 4)
+                self.connector.proxy.write_attribute("ViewingMode", 1)
                 if self.state(refresh=True) != State.RUNNING:
                     self.connector.proxy.command_inout("StartAcquisition")
                 sleep(0.2)
-                self.connector.proxy.subscribe_event("ImageEnc", \
+                self.connector.proxy.subscribe_event("image_8", \
                         EventType.DATA_READY_EVENT, \
                         self.on_image_changed, [], False)
             except:

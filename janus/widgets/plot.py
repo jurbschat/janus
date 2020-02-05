@@ -10,9 +10,9 @@ __license__ = "GPL"
 
 import time
 import numpy
-from PyQt5.QtCore import QTimer, QObject, Qt
+from PyQt5.QtCore import QTimer, QObject, Qt, QMutex
 from PyQt5.QtGui import QPen, QBrush, QColor
-from pyqtgraph import PlotWidget, PlotDataItem
+from pyqtgraph import PlotWidget, PlotDataItem, InfiniteLine
 from ..core import Object
 
 
@@ -43,10 +43,12 @@ class Plot(QObject, Object):
         QObject.__init__(self)
         Object.__init__(self)
         self.parent = parent
+        self.lines = {}
         self.items = {} #plot items
         self.data = {} #data series to the plot items
         self.master = None #id of the data series which triggers the update
         self.x_range = -1 #id of the data series which range defines the plot range
+        self.mutex = QMutex()
         self.update_timer = QTimer(self)
         self.update_timer_start = None
         self.setup_ui()
@@ -71,11 +73,13 @@ class Plot(QObject, Object):
             which triggered the update or None if master is of TYPE_TIME.
         :type attribute: str|None
         """
+        self.mutex.lock()
         if not ((attribute is None and \
                 self.data[self.master]["data_type"] == Plot.TYPE_TIME) or \
                 (attribute == self.data[self.master]["name"] and \
                 self.data[self.master]["data_type"] in \
                 [Plot.TYPE_SCALAR, Plot.TYPE_SPECTRUM])):
+            self.mutex.unlock()
             return
         if self.update_timer_start is not None:
             time_stamp = time.time() - self.update_timer_start
@@ -126,6 +130,7 @@ class Plot(QObject, Object):
                 self.items[i]["plot"].setData( \
                         self.data[self.items[i]["x"]]["data"], \
                         self.data[self.items[i]["y"]]["data"])
+        self.mutex.unlock()
 
     def add_plot_data(self, i, data=None, attr=None, data_type=TYPE_STATIC, \
                 role=ROLE_SLAVE, interval=1.0, \
@@ -210,7 +215,9 @@ class Plot(QObject, Object):
                         -(min_length-1)*interval, 0, min_length)
         elif data_type != Plot.TYPE_STATIC:
             return False
+        self.mutex.lock()
         self.data[i] = datum
+        self.mutex.unlock()
         if role == Plot.ROLE_MASTER:
             self.set_master(i)
         return True
@@ -218,7 +225,8 @@ class Plot(QObject, Object):
     def remove_plot_data(self, i):
         if i == self.master:
             self.unset_master()
-        for item in self.data[i]["items"]:
+        items = self.data[i]["items"]
+        for item in items:
             self.remove_plot_item(item)
         del self.data[i]
 
@@ -245,10 +253,24 @@ class Plot(QObject, Object):
         self.widget.addItem(self.items[i]["plot"])
 
     def remove_plot_item(self, i):
+        self.mutex.lock()
         self.data[self.items[i]["x"]]["items"].remove(i)
         self.data[self.items[i]["y"]]["items"].remove(i)
         self.widget.removeItem(self.items[i]["plot"])
         del self.items[i]
+        self.mutex.unlock()
+
+    def add_line_item(self, i, **kwargs):
+        self.mutex.lock()
+        self.lines[i] = InfiniteLine(**kwargs)
+        self.widget.addItem(self.lines[i])
+        self.mutex.unlock()
+
+    def remove_line_item(self, i):
+        self.mutex.lock()
+        self.widget.removeItem(self.lines[i])
+        del self.lines[i]
+        self.mutex.unlock()
 
     def set_master(self, i):
         """Set which data series will trigger a plot update.
@@ -256,6 +278,7 @@ class Plot(QObject, Object):
         :param data: Id of the data series which triggers the update.
         :type data: int
         """
+        self.mutex.lock()
         if self.master is not None and self.master != i:
             self.unset_master()
             self.data[i]["device"].value_changed.disconnect(self.update_values)
@@ -266,8 +289,10 @@ class Plot(QObject, Object):
             self.update_timer_start = time.time()
             self.update_timer.start(self.data[i]["interval"] * 1000.)
         self.master = i
+        self.mutex.unlock()
 
     def unset_master(self):
+        self.mutex.lock()
         if self.data[self.master]["data_type"] in \
                 [Plot.TYPE_SCALAR, Plot.TYPE_SPECTRUM]:
             self.data[self.master]["device"].value_changed.disconnect( \
@@ -275,6 +300,7 @@ class Plot(QObject, Object):
         elif self.data[self.master]["data_type"] == Plot.TYPE_TIME:
             self.update_timer.timeout.disconnect(self.update_values)
             self.update_timer.stop()
+        self.mutex.unlock()
 
     def tie_x_range(self, data=-1):
         """Sets the plot x range to be the same as the given data series.
@@ -285,8 +311,11 @@ class Plot(QObject, Object):
         self.x_range = data
 
     def clear(self):
-        for i in self.data:
-            self.remove_plot_data(i)
+        data = list(self.data.keys())
+        for datum in data:
+            self.remove_plot_data(datum)
+        for line in list(self.lines.keys()):
+            self.remove_line_item(line)
 
 
             

@@ -1,9 +1,7 @@
+from PyQt5.QtCore import Qt, QObject, QPointF
+from PyQt5.QtWidgets import QWidget
 from ..core import Object
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from janus.widgets.ui.gridcontrols_ui import Ui_GridControls
-import glm
+from .ui.gridcontrols_ui import Ui_GridControls
 
 class GridControls(QObject, Object):
 

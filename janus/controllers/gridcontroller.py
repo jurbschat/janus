@@ -5,7 +5,6 @@ from janus.utils.observableproperty import ObservableProperty
 from janus.controllers.controllerbase import ControllerBase
 import math
 from PyQt5.QtGui import QVector2D
-
 from PyQt5.QtCore import *
 
 def rand_cmap(nlabels, type='bright', first_color_black=True, last_color_black=False, verbose=True):
@@ -167,21 +166,19 @@ class ChipPointGenerator(GeneratorBase):
     def __init__(self, bounding_points, chip, full_windows):
         self.points = np.array([(0, 0)])
         self.meta = np.array([(255, 0, 0)])
+        self.window_points = np.array([(0, 0)])
         self.lines = []
         self.bounding_points = bounding_points
+        self.chip = chip
+        self.angle = 0
         print("generating points... ", end = "", flush=True)
         start = timer()
-        self.build_points2(bounding_points, chip, full_windows)
+        self.build_points(bounding_points, chip, full_windows)
         end = timer()
         print("done. generating {} points took: {}ms".format(len(self.points), int((end - start)*1000)))
 
-    def get_angle_from_bounding_points(self, bounding_points):
-        vec = bounding_points[1] - bounding_points[0]
-        angle =  math.atan2(-vec.y(), vec.x()) * 180 / math.pi
-        return angle
-
     #@profile
-    def build_points2(self, bounding_points, chip, full_windows):
+    def build_points(self, bounding_points, chip, full_windows):
         # as floating point calculations are inherently not 100% precise it can be
         # that a rotated vector of length 500 comes out at e.g. 499.99999647, to
         # compensate this we ass a small epsilon to the length that should generally
@@ -195,8 +192,12 @@ class ChipPointGenerator(GeneratorBase):
         # generate point grind as numpy array of 2d tuples, e.g. [[], []...]
         # we use this as the point of truth for our grid size to calculate
         # rows/columns. numpy point generation is way faster that manual looping in python
-        # for values > 1e6
+        # for sizes > 1e6
         grid = np.mgrid[0:size_x:chip.hole_distance.x(), 0:size_y:chip.hole_distance.y()]
+        if chip.odd_indentation > 0:
+            #grid[0][:, 1::2] = grid[0][:-1, 1::2]
+            grid[0][:, 1::2] += chip.odd_indentation
+
         columns = grid.shape[1]
         rows = grid.shape[2]
         points = grid.T.reshape(-1, 2)
@@ -204,8 +205,8 @@ class ChipPointGenerator(GeneratorBase):
         # translate and rotate points to match our grid transformation specified by
         # the pounding points
         vec = bounding_points[1] - bounding_points[0]
-        angle = math.atan2(vec.y(), vec.x())
-        rot = np.array([[math.cos(angle), -math.sin(angle)], [math.sin(angle), math.cos(angle)]])
+        self.angle = math.atan2(vec.y(), vec.x())
+        rot = np.array([[math.cos(self.angle), -math.sin(self.angle)], [math.sin(self.angle), math.cos(self.angle)]])
         translation = bounding_points[0]
         points = points.dot(rot.T)
         points = points + (translation.x(), translation.y())
@@ -215,6 +216,19 @@ class ChipPointGenerator(GeneratorBase):
         # is done via the controller
         meta = np.tile({"color": [0, 255, 0], "valid": False}, [rows, columns])
 
+        def mark_incomplete_windows(size, window_size, hole_distance, support_size, color):
+            number_of_full_windows = (size + hole_distance - window_size) // (window_size + support_size) + 1
+            start_point = number_of_full_windows * (window_size + support_size)
+            start_row = math.floor(start_point / hole_distance)
+            meta[start_row:,] = {"color": color, "valid": False}
+
+        # mark the last unfinished windows as disabled
+        if not full_windows:
+            mark_incomplete_windows(size_y, chip.window_size.y(), chip.hole_distance.y(), chip.support_size.y(), [96, 0, 0])
+            meta = meta.transpose()
+            mark_incomplete_windows(size_x, chip.window_size.x(), chip.hole_distance.x(), chip.support_size.x(), [96, 0, 0])
+            meta = meta.transpose()
+
         # mark all rows with support structure als invalid. we do this per row
         def mark_support_structure(size, window_size, hole_distance, support_size, color):
             if support_size == 0:
@@ -222,7 +236,7 @@ class ChipPointGenerator(GeneratorBase):
             structures = math.ceil(size / (window_size + support_size))
             max_row = meta.shape[0]
             for structure_id in range(structures):
-                start_pos = window_size * (structure_id + 1) + support_size * structure_id
+                start_pos = window_size * (structure_id + 1) + support_size * structure_id - hole_distance
                 end_pos = start_pos + support_size
                 start_row = math.ceil(start_pos / hole_distance)
                 end_row = math.floor(end_pos / hole_distance) + 1
@@ -232,11 +246,11 @@ class ChipPointGenerator(GeneratorBase):
 
         # disable the first and last of each row and column (one point border around the whole chip)
         # first and last row
-        meta[0, ] = {"color": [255, 0, 0], "valid": False}
-        meta[-1,] = {"color": [255, 0, 0], "valid": False}
+        #meta[0, ] = {"color": [255, 0, 0], "valid": False}
+        #meta[-1,] = {"color": [255, 0, 0], "valid": False}
         # first and last columns
-        meta[:, 0] = {"color": [255, 0, 0], "valid": False}
-        meta[:, -1] = {"color": [255, 0, 0], "valid": False}
+        #meta[:, 0] = {"color": [255, 0, 0], "valid": False}
+        #meta[:, -1] = {"color": [255, 0, 0], "valid": False}
 
         # we mark all support rows and then transpose and repeat the step.
         # this is faster that some python logic for the columns case as
@@ -246,17 +260,14 @@ class ChipPointGenerator(GeneratorBase):
         mark_support_structure(size_x, chip.window_size.x(), chip.hole_distance.x(), chip.support_size.x(), [255, 0, 0])
         meta = meta.transpose()
 
-        # mark the last unfinished window as disabled
-        if not full_windows:
-            window_with_support_size = (chip.window_size + chip.support_size)
-            full_rows = window_with_support_size.x() / chip.hole_distance.x()
-            full_columns = window_with_support_size.y() / chip.hole_distance.y()
-            row_disable_start = int(rows / full_rows) * window_with_support_size.x()
-            column_disable_start = int(columns / full_columns) * window_with_support_size.y()
-            shape = meta.shape
-            meta[3:5,] = {"color": [255, 0, 0], "valid": False}
-            meta[:, 3:5] = {"color": [255, 0, 0], "valid": False}
-
+        # calculate topleft cornerpoints of chip windows
+        window_offset_x, window_offset_y = chip.hole_distance.x(), chip.hole_distance.y()
+        window_tl_points = np.mgrid[-window_offset_x: size_x: (chip.window_size.x()+chip.support_size.x()),
+                                -window_offset_y: size_y: (chip.window_size.y()+chip.support_size.y())]
+        window_tl_points = window_tl_points.T.reshape(-1, 2)
+        #window_tl_points = window_tl_points.dot(rot.T)
+        #window_tl_points = window_tl_points + (translation.x(), translation.y())
+        self.window_points = window_tl_points
 
         # make 1d array of points from the 2d array for indexing into the kdtree later on
         meta = meta.ravel()
@@ -272,9 +283,10 @@ class ChipPointGenerator(GeneratorBase):
                 "startIdx": start,
                 "endPos": points[end],
                 "endIdx": end,
-                "startEndVec": points[start] - points[end]
+                "startEndVec": points[start] - points[end],
+                "hole_count": (end - start) + 1
             }
-            self.lines.append(self.lines.append(entry))
+            lines.append(entry)
         self.lines = np.array(lines)
 
     def get_bounding_points(self):
@@ -286,16 +298,20 @@ class GridController(ControllerBase):
     def __init__(self, generator=None):
         self.bounding_points = [QPointF(0, 0), QPointF(0, 0), QPointF(0, 0), QPointF(0, 0)]
         self.points = []
+        self.window_points = []
         self.meta = []
         self.lines = []
+        self.angle = 0
         self.tree = None
+        self.chip = None
 
         if generator is not None:
             self.update_generator(generator)
 
         self.beam_size = ObservableProperty(10)
         self.beam_offset = ObservableProperty(QPointF(0, 0))
-        self.sampleOffset = ObservableProperty(QPointF(0, 0))
+        self.beam_center_reference = ObservableProperty(QPointF(0, 0))
+        self.sample_offset = ObservableProperty(QPointF(0, 0))
         self.generate_only_full_windows = ObservableProperty(False)
         self.selected_chip_name = ObservableProperty("")
 
@@ -303,8 +319,10 @@ class GridController(ControllerBase):
         self.bounding_points = [QPointF(0, 0), QPointF(0, 0), QPointF(0, 0), QPointF(0, 0)]
         self.points = []
         self.meta = []
+        self.window_points = []
         self.lines = []
         self.tree = None
+        self.angle = 0
 
     def isEmpty(self):
         return self.bounding_points[0] - self.bounding_points[1] == QPointF(0, 0) \
@@ -317,14 +335,18 @@ class GridController(ControllerBase):
         start = timer()
         self.points = generator.points
         self.meta = generator.meta
+        self.window_points = generator.window_points
         self.lines = generator.lines
+        self.chip = generator.chip
         self.bounding_points = generator.get_bounding_points()
+        self.angle = generator.angle
         self.tree = cKDTree(np.array(generator.points))
         end = timer()
         print("done. building tree with {} points took: {}ms".format(len(self.points), int((end - start)*1000)))
 
-    def get_point_lines(self):
-        return self.lines
+    def get_beam_position(self):
+        beam_pos = self.beam_center_reference.get() + self.beam_offset.get()
+        return beam_pos
 
     def query_points(self, rect):
         if self.tree is None:

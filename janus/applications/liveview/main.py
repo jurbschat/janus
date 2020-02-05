@@ -16,23 +16,25 @@ from janus.utils.log import Logger, LogHandler
 from janus.utils.config import Config
 from janus.devices.camera import VimbaCamera
 from janus.controllers.gridcontroller import GridController, ChipPointGenerator
-from janus.controllers.axiscontroller import AxisController
+from janus.controllers.axiscontroller import AxisController, GridAxisNames
 from janus.controllers.chipregistry import ChipRegistry
 #from janus.devices.autofocuscontroller import AutofocusController
+from janus.controllers.continuousfocuscontroller import ContinuousFocusController
 from janus.devices.motor import TangoMotor
+from PyTango import DeviceProxy
+from janus.devices.generic import Device
 from janus.widgets.camera import CameraControls
-from janus.widgets.gridwidget import GridWidget, GridAxisNames
+from janus.widgets.gridwidget import GridWidget
 from janus.widgets.log import Log
 from janus.widgets.gridcontrols import GridControls
 from janus.widgets.beamprofile import BeamProfile
 from janus.widgets.motorcontrols import MotorControls
 from janus.widgets.scancontrols import ScanControls
 from janus.widgets.statusbar import StatusBar
-from janus.widgets.mainmenubar import MainMenuBar
+from janus.widgets.autofocuscontrols import AutoFocusControls
 from janus.widgets.gridtoolbar import GridToolBar
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-import glm
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QSplitter, QScrollArea
+from PyQt5.QtCore import QPointF, QSettings
 
 class RememberedMainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -81,18 +83,20 @@ class LiveView(Application):
         con_motor_rr_linear, motor_rr_linear = self.janus.utils["config"].geturi("devices", "motor_rr_linear")
         #con_motor_rr_rotation, motor_rr_rotation = self.janus.utils["config"].geturi("devices", "motor_rr_rotation")
         #con_motor_rr_centerx, motor_rr_centerx = self.janus.utils["config"].geturi("devices", "motor_rr_center_x")
-        #con_motor_rr_centery, motor_rr_centery = self.janus.utils["config"].geturi("devices", "motor_rr_center_y")
+        con_motor_rr_centery, motor_rr_centery = self.janus.utils["config"].geturi("devices", "motor_rr_center_y")
         #con_motor_tower_x, motor_tower_x = self.janus.utils["config"].geturi("devices", "motor_tower_x")
         con_motor_tower_y, motor_tower_y = self.janus.utils["config"].geturi("devices", "motor_tower_y")
         con_motor_tower_z, motor_tower_z = self.janus.utils["config"].geturi("devices", "motor_tower_z")
+        con_linear_scan_device, linear_scan_device = self.janus.utils["config"].geturi("devices", "linear_scan_device")
 
-        self.janus.devices["motor_rr_linear"] = TangoMotor(connector=con_motor_rr_linear, uri=motor_rr_linear, updateInterval=0.020)
+        self.janus.devices["motor_rr_linear"] = TangoMotor(connector=con_motor_rr_linear, uri=motor_rr_linear, updateInterval=0.010)
         #self.janus.devices["motor_rr_rotation"] = TangoMotor(connector=con_motor_rr_rotation, uri=motor_rr_rotation, updateInterval=0.020)
         #self.janus.devices["motor_rr_centerx"] = TangoMotor(connector=con_motor_rr_centerx, uri=motor_rr_centerx, updateInterval=0.020)
-        #self.janus.devices["motor_rr_centery"] = TangoMotor(connector=con_motor_rr_centery, uri=motor_rr_centery, updateInterval=0.020)
+        self.janus.devices["motor_rr_centery"] = TangoMotor(connector=con_motor_rr_centery, uri=motor_rr_centery, updateInterval=0.010)
         #self.janus.devices["motor_tower_x"] = TangoMotor(connector=con_motor_tower_x, uri=motor_tower_x, updateInterval=0.020)
-        self.janus.devices["motor_tower_y"] = TangoMotor(connector=con_motor_tower_y, uri=motor_tower_y, updateInterval=0.020)
-        self.janus.devices["motor_tower_z"] = TangoMotor(connector=con_motor_tower_z, uri=motor_tower_z, updateInterval=0.020)
+        self.janus.devices["motor_tower_y"] = TangoMotor(connector=con_motor_tower_y, uri=motor_tower_y, updateInterval=0.010)
+        self.janus.devices["motor_tower_z"] = TangoMotor(connector=con_motor_tower_z, uri=motor_tower_z, updateInterval=0.010)
+        self.janus.devices["linear_scan_device"] = Device(con_linear_scan_device, linear_scan_device, {"execute": "WriteRead", "execute": "StartUserTask1"})
 
     def init_controllers(self):
         chip_registry = ChipRegistry("chips.xml")
@@ -101,10 +105,11 @@ class LiveView(Application):
         #self.janus.controllers["autofocus"] = AutofocusController(camera, focusaxis)
         devices = {
             GridAxisNames.AXIS_X: self.janus.devices["motor_rr_linear"],
-            GridAxisNames.AXIS_Y: self.janus.devices["motor_tower_y"],
+            GridAxisNames.AXIS_Y: self.janus.devices["motor_rr_centery"],
             GridAxisNames.AXIS_Z: self.janus.devices["motor_tower_z"]
         }
-        self.janus.controllers["grid_axis_controller"] = AxisController(devices)
+        axis_controller = AxisController(devices)
+        self.janus.controllers["grid_axis_controller"] = axis_controller
         chip = chip_registry.get_chip("new-format")
         self.janus.controllers["grid"] = GridController(ChipPointGenerator([
                 QPointF(0, 0),
@@ -113,7 +118,7 @@ class LiveView(Application):
                 QPointF(0, chip.chip_size.y()),
             ], 
             chip, False))
-        #self.janus.controllers["grid"] = GridController()
+        self.janus.controllers["continuous_focus"] = ContinuousFocusController(axis_controller)
 
     def init_widgets(self):
         mainWindow = RememberedMainWindow()
@@ -128,50 +133,6 @@ class LiveView(Application):
         # setup main splitter
         #
         splitter = QSplitter(central_widget)
-
-        #
-        # layout and widget for the controls on the right
-        #
-        controlsScrollArea = QScrollArea(splitter)
-        controlsScrollArea.setWidgetResizable(True)
-
-        scrollAreaWidget = QWidget()
-        scrollAreaLAyout = QVBoxLayout(scrollAreaWidget)
-
-        cameraControls = CameraControls(parent=scrollAreaWidget, device=self.janus.devices["onaxis_camera"])
-        self.janus.widgets["cameraControls"] = cameraControls
-        scrollAreaLAyout.addWidget(cameraControls.widget)
-
-        # grid controls
-        gridControls = GridControls(parent=scrollAreaWidget, grid_controller=self.janus.controllers["grid"], chip_registry=self.janus.controllers["chip_registry"])
-        self.janus.widgets["gridControls"] = gridControls
-        scrollAreaLAyout.addWidget(gridControls.widget)
-
-        # scan controls
-        scanControls = ScanControls(parent=scrollAreaWidget)
-        self.janus.widgets["scanControls"] = scanControls
-        scrollAreaLAyout.addWidget(scanControls.widget)
-
-        # motorcontrols controls
-        motorControls = MotorControls(parent=scrollAreaWidget)
-        self.janus.widgets["motorControls"] = motorControls
-        scrollAreaLAyout.addWidget(motorControls.widget)
-
-        # beamprofile controls
-        beamProfile = BeamProfile(parent=scrollAreaWidget)
-        self.janus.widgets["beamProfile"] = beamProfile
-        scrollAreaLAyout.addWidget(beamProfile.widget)
-
-        # log console
-        logView = Log(parent=scrollAreaWidget, handler=self.janus.utils["logHandler"])
-        self.janus.widgets["logView"] = logView
-        scrollAreaLAyout.addWidget(logView.widget)
-
-        # all the bars!
-        #self.janus.widgets["menuBar"] = MainMenuBar(mainWindow)
-        self.janus.widgets["statusBar"] = StatusBar(mainWindow)
-
-        controlsScrollArea.setWidget(scrollAreaWidget)
 
         #
         # left side camera stuff
@@ -194,12 +155,68 @@ class LiveView(Application):
         cameraSceneLayout.addWidget(grid_widget)
         cameraSceneWidget.setLayout(cameraSceneLayout)
 
+        #
+        # Right Widget and layout for the controls
+        #
+        controlsScrollArea = QScrollArea(splitter)
+        controlsScrollArea.setWidgetResizable(True)
+
+        scrollAreaWidget = QWidget()
+        scrollAreaLAyout = QVBoxLayout(scrollAreaWidget)
+
+        cameraControls = CameraControls(parent=scrollAreaWidget, device=self.janus.devices["onaxis_camera"])
+        self.janus.widgets["cameraControls"] = cameraControls
+        scrollAreaLAyout.addWidget(cameraControls.widget)
+
+        # grid controls
+        gridControls = GridControls(parent=scrollAreaWidget, grid_controller=self.janus.controllers["grid"], chip_registry=self.janus.controllers["chip_registry"])
+        self.janus.widgets["gridControls"] = gridControls
+        scrollAreaLAyout.addWidget(gridControls.widget)
+
+        # auto/continous focus controls
+        focusControls = AutoFocusControls(focus_controller=self.janus.controllers["continuous_focus"], axis_controller=axis_controller, parent=scrollAreaWidget)
+        self.janus.widgets["focusControls"] = focusControls
+        scrollAreaLAyout.addWidget(focusControls.widget)
+
+        # scan controls
+        raw_tango_devices = {
+            "linear_scan_device": self.janus.devices["linear_scan_device"],
+            #"pilc_shutter_device": self.janus.devices["rr_pilc_device"]
+        }
+        scanControls = ScanControls(parent=scrollAreaWidget,
+                                    grid_controller=self.janus.controllers["grid"],
+                                    grid_axis_controller=self.janus.controllers["grid_axis_controller"],
+                                    raw_tango_devices=raw_tango_devices)
+        self.janus.widgets["scanControls"] = scanControls
+        scrollAreaLAyout.addWidget(scanControls.widget)
+
+        # motorcontrols controls
+        #motorControls = MotorControls(parent=scrollAreaWidget)
+        #self.janus.widgets["motorControls"] = motorControls
+        #scrollAreaLAyout.addWidget(motorControls.widget)
+
+        # beamprofile controls
+        beamProfile = BeamProfile(parent=scrollAreaWidget)
+        self.janus.widgets["beamProfile"] = beamProfile
+        scrollAreaLAyout.addWidget(beamProfile.widget)
+
+        # log console
+        logView = Log(parent=scrollAreaWidget, handler=self.janus.utils["logHandler"])
+        self.janus.widgets["logView"] = logView
+        scrollAreaLAyout.addWidget(logView.widget)
+
+        # all the bars!
+        #self.janus.widgets["menuBar"] = MainMenuBar(mainWindow)
+        self.janus.widgets["statusBar"] = StatusBar(mainWindow)
+
+        controlsScrollArea.setWidget(scrollAreaWidget)
+
         splitter.addWidget(cameraSceneWidget)
         splitter.addWidget(controlsScrollArea)
         splitter.setCollapsible(0, False)
         splitter.setCollapsible(1, False)
         splitter.setStretchFactor(0, 250)
-        splitter.setStretchFactor(1, 100)
+        splitter.setStretchFactor(1, 150)
 
         mainLayout.addWidget(splitter)
 
@@ -210,7 +227,9 @@ class LiveView(Application):
             self.janus.devices[dev].stop_device()
         self.janus.utils["config"].save_persistent()
         Application.quit()
+        print("Application.quit() called")
 
 if __name__ == '__main__':
     app = LiveView()
     app.start()
+    pass

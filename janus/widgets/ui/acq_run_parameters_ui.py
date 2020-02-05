@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'janus/widgets/ui/acq_run_parameters.ui'
+# Form implementation generated from reading ui file 'acq_run_parameters.ui'
 #
 # Created by: PyQt5 UI code generator 5.7
 #
@@ -39,6 +39,7 @@ class Ui_FormAcqRun(object):
         self.lineEditAcqRunNumer.setSizeIncrement(QtCore.QSize(1, 0))
         self.lineEditAcqRunNumer.setBaseSize(QtCore.QSize(1, 0))
         self.lineEditAcqRunNumer.setMaxLength(4)
+        self.lineEditAcqRunNumer.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.lineEditAcqRunNumer.setReadOnly(True)
         self.lineEditAcqRunNumer.setObjectName("lineEditAcqRunNumer")
         self.horizontalLayout.addWidget(self.lineEditAcqRunNumer)

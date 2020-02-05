@@ -68,3 +68,6 @@ class Device(QObject, Object):
         elif attribute["mode"] == "execute":
             setattr(self, name, execute)
         self.attributes[name] = attribute
+
+    def stop_device(self):
+        self.connector.stop_device()

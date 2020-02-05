@@ -2,46 +2,51 @@ from janus.const import State
 import time
 import asyncio
 import threading
+from janus.utils.asynciohelper import ThreadedEventLoop
 from janus.controllers.controllerbase import ControllerBase
 
+class GridAxisNames:
+    AXIS_X = "grid_x"
+    AXIS_Y = "grid_y"
+    AXIS_Z = "grid_z"
+
 class Axis:
-    def __init__(self, loop, name, device):
-        self.loop = loop
+    def __init__(self, event_loop, name, device):
+        self.event_loop = event_loop
         self.name = name
         self.device = device
         self.target = 0
-        self.target_sucesfully_written = 0
+        self.target_successfully_written = 0
         self.reties = 5
-        self.state = State.UNKNOWN
         self.execute_move_task = None
-        self.lock = threading.Lock()
         self.move_tasks = []
+        self.state = State(self.device.state())
+        self.lock = threading.Lock()
 
-    def set_position(self, pos):
+    def set_position(self, pos, abort=False):
         self.target = pos
-        self._target_changed()
+        self._target_changed(abort)
 
-    def get_position(self):
-        return self.device.position()
+    def get_position(self, refresh=False):
+        return self.device.position(refresh=refresh)
 
     def translate(self, offset):
         self.target = self.target + offset
         self._target_changed()
 
-    def _target_changed(self):
+    def _target_changed(self, abort):
         distance = abs(self.get_position() - self.target)
         if distance < 0.1:
             return
         with self.lock:
             if self.execute_move_task is not None:
                 return
-            #print("creating task")
-            self.execute_move_task = asyncio.run_coroutine_threadsafe(self._coro_wrapper(self.target, True), self.loop)
-            #print("task created ({}".format(self.execute_move_task))
+            self.state = State.MOVING
+            self.execute_move_task = asyncio.run_coroutine_threadsafe(self._coro_wrapper(self.target, abort), loop=self.event_loop)
 
     async def _coro_wrapper(self, target, abort):
+        asyncio.Task.current_task().name = "MOVE: (x: {}, y:{})".format(target.x(), target.y())
         ret = await self._execute_move(target, abort)
-        #print("task completed ({})".format(self.execute_move_task))
         with self.lock:
             self.execute_move_task = None
 
@@ -49,14 +54,13 @@ class Axis:
         success = False
         for i in range(self.reties):
             if abort_current is True and self.device.state() == State.MOVING:
-                #print("executing move while still moving, stopping move! (self: {}".format(self))
                 self.device.stop()
             while self.device.state() == State.MOVING:
-                #print("aborting, wait! (self: {})".format(self))
                 await asyncio.sleep(0.05)
+            print("executing move")
             success = self.device.position(new_position)
             if success:
-                self.target_sucesfully_written = new_position
+                self.target_successfully_written = new_position
                 success = True
                 break
             else:
@@ -64,47 +68,57 @@ class Axis:
                 await asyncio.sleep(0.5)
         if success is False:
             print("unable to execute move command, aborting")
+        while self.device.state(True) == State.MOVING:
+            await asyncio.sleep(0.05)
+        self.state = State(self.device.state(True))
 
     def get_state(self):
-        return self.device.state()
-
+        return self.state
 
 class AxisController(ControllerBase):
     def __init__(self, axis_dict):
-        self.loop = asyncio.get_event_loop()
-        self.axis_dict = {key: Axis(self.loop, key, value) for key, value in axis_dict.items()}
+        self.threaded_event_loop = None #ThreadedEventLoop()
+        self.axis_dict = {key: Axis(None, key, value) for key, value in axis_dict.items()}
         self.initial_axis_dict = axis_dict
-        self.thread = threading.Thread(target=self.run)
-        self.thread.start()
-
-    def run(self):
-        asyncio.set_event_loop(self.loop)
-        self.loop.run_forever()
 
     def stop_controller(self):
+        return
         while True:
-            shouldWait = False
+            should_wait = False
             for axis in self.axis_dict:
                 if self.axis_dict[axis].execute_move_task is not None:
-                    shouldWait = True
+                    should_wait = True
                     break
-            if shouldWait:
+            if should_wait:
                 time.sleep(0.5)
             else:
                 break
-        self.loop.call_soon_threadsafe(self.loop.stop)
-        if self.thread is not None and self.thread.isAlive():
-            self.thread.join()
+        self.threaded_event_loop.stop_event_loop()
 
-    def set_position(self, axis_name, pos):
-        self.axis_dict[axis_name].set_position(pos)
+    def get_limits(self):
+        limits = {}
+        for axis in self.axis_dict:
+            cw = self.axis_dict[axis].device.soft_limit_min()
+            ccw = self.axis_dict[axis].device.soft_limit_max()
+            limits[axis] = [cw, ccw]
+        return limits
 
-    def get_position(self, axis_name):
-        return self.axis_dict[axis_name].get_position()
+    def set_position(self, axis_name, pos, abort=False):
+        self.axis_dict[axis_name].set_position(pos, abort)
+
+    def get_position(self, axis_name, refresh=False):
+        return self.axis_dict[axis_name].get_position(refresh=refresh)
 
     def translate(self, axis_name, offset):
         pos = self.get_position(axis_name)
         self.axis_dict[axis_name].set_position(pos + offset)
 
     def state(self, axis_name):
-        return self.axis_dict[axis_name].state()
+        return self.axis_dict[axis_name].get_state()
+
+    def all_moves_completed(self):
+        for axis in self.axis_dict:
+            state = self.axis_dict[axis].get_state()
+            if state == State.MOVING:
+                return False
+        return True

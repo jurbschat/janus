@@ -20,6 +20,7 @@ class AcqRunParameters(QObject, Object):
         QObject.__init__(self)
         self.parent = parent
         self.setup_ui()
+        self.register_persistents()
         self.connect_signals()
 
     def setup_ui(self):
@@ -27,9 +28,29 @@ class AcqRunParameters(QObject, Object):
         self.widget = QWidget(self.parent)
         self.ui = Ui_FormAcqRun()
         self.ui.setupUi(self.widget)
+        self.update_values("number")
 
     def connect_signals(self):
-        pass
+        self.ui.lineEditAcqSampleName.textChanged.connect( \
+                self.janus.utils["path"].set_user_and_sample_dir)
+        self.janus.utils["path"].value_changed.connect(self.update_values)
+
+    def register_persistents(self):
+        self.janus.utils["config"].add_persistent( \
+                "acq", "sample_name", self.ui.lineEditAcqSampleName.text,
+                self.ui.lineEditAcqSampleName.setText, str)
+        self.janus.utils["config"].add_persistent( \
+                "acq", "comment", self.ui.plainTextEditAcqComment.toPlainText,
+                self.ui.plainTextEditAcqComment.setPlainText, str)
+
+    def update_values(self, value):
+        if value == "number":
+            self.ui.lineEditAcqRunNumer.setText( \
+                str(self.janus.utils["path"].number))
+        else:
+            self.ui.lineEditAcqPath.setText( \
+                    self.janus.utils["path"].get_path( \
+                    "/beamline/beamtime/raw/user/sample"))
 
 
 class AcqProgressDialog(QObject, Object):
@@ -123,5 +144,12 @@ class AcqProgressDialog(QObject, Object):
         for key, getter in self.acq_method.conditions.items():
             checkbox = self.widget.findChild(QCheckBox, "QCheckBox" + key)
             checkbox.setChecked(eval(getter))
+        if self.acq_method.time_total > 0:
+            percent = (self.acq_method.time_total -
+                     self.acq_method.time_remaining()) / self.acq_method.time_total
+            if self.acq_method.time_remaining() < 0:
+                percent = 1.0
+            self.progress_bar.setProperty("value", percent * 100)
+            
 
 

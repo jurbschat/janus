@@ -2,32 +2,65 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3bf07778-d9c2-457b-bd7c-94276d6b935d" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/janus/controllers/shutter.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/janus/actions/gridscanaction.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/janus/controllers/continuousfocuscontroller.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/janus/utils/asynciohelper.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/janus/utils/mathhelpers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/janus/widgets/actionprogressdialog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/trunk/v16/.suo" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/trunk/v16/.suo" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/actions/acq_fluorescence.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/actions/acq_fluorescence.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/applications/liveview/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/janus/applications/liveview/config.ini" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/applications/liveview/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/applications/liveview/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/janus/applications/liveview/main.py.lprof" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/applications/xanes/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/janus/applications/xanes/config.ini" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/applications/xanes/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/applications/xanes/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/const.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/const.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/controllers/axiscontroller.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/controllers/axiscontroller.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/controllers/gridcontroller.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/controllers/gridcontroller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/janus/core.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/core.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/controllers/shutter.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/utils/shutter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/devices/camera.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/devices/camera.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/devices/connector.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/devices/connector.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/devices/fluorescence.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/devices/fluorescence.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/devices/generic.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/devices/generic.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/devices/motor.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/devices/motor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/janus.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/janus_applications_xanes.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/janus_applications_xanes_main.svg" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/utils/log.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/utils/log.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/widgets/acq.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/acq.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/widgets/acq_fluorescence.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/acq_fluorescence.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/widgets/autofocus.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/autofocuscontrols.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/widgets/gridcontrols.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/gridcontrols.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/widgets/gridwidget.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/gridwidget.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/widgets/plot.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/plot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/janus/widgets/qt_modified.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/qt_modified.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/widgets/scancontrols.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/scancontrols.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/widgets/ui/acq_run_parameters.ui" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/ui/acq_run_parameters.ui" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/widgets/ui/acq_run_parameters_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/ui/acq_run_parameters_ui.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/widgets/ui/acq_xanes_parameters.ui" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/ui/acq_xanes_parameters.ui" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/janus/widgets/ui/acq_xanes_parameters_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/ui/acq_xanes_parameters_ui.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/janus/widgets/ui/gridcontrols.ui" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/ui/gridcontrols.ui" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/janus/widgets/ui/gridcontrols_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/ui/gridcontrols_ui.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/widgets/ui/acq_xrf_parameters.ui" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/ui/acq_xrf_parameters.ui" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/widgets/ui/acq_xrf_parameters_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/ui/acq_xrf_parameters_ui.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/widgets/ui/autofocus.ui" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/ui/autofocus.ui" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/janus/widgets/ui/autofocus_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/janus/widgets/ui/autofocus_ui.py" afterDir="false" />
     </list>
-    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DatabaseView">
+    <option name="SHOW_INTERMEDIATE" value="true" />
+    <option name="GROUP_DATA_SOURCES" value="true" />
+    <option name="GROUP_SCHEMA" value="true" />
+    <option name="GROUP_CONTENTS" value="false" />
+    <option name="SORT_POSITIONED" value="false" />
+    <option name="SHOW_EMPTY_GROUPS" value="false" />
+    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
+    <option name="HIDDEN_KINDS">
+      <set />
+    </option>
+    <expand />
+    <select />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -42,25 +75,23 @@
   </component>
   <component name="ProjectId" id="1Sq3UykqC4jmdnvl7wHM877f2m4" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
   <component name="PropertiesComponent">
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="com.intellij.ide.scratch.LRUPopupBuilder$1/New Scratch File" value="Jupyter" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../crystalControl/trunk" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../Roadrunner3-ESRF-12-2018/trunk" />
     <property name="restartRequiresConfirmation" value="false" />
-    <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
-  <component name="RunDashboard">
-    <option name="ruleStates">
-      <list>
-        <RuleState>
-          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
-        </RuleState>
-        <RuleState>
-          <option name="name" value="StatusDashboardGroupingRule" />
-        </RuleState>
-      </list>
-    </option>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Jakob\dev\p11svn\Programs\janus\trunk\janus\utils" />
+    </key>
   </component>
   <component name="RunManager" selected="Python.main">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
@@ -136,7 +167,8 @@
     </list>
   </component>
   <component name="StructureViewFactory">
-    <option name="ACTIVE_ACTIONS" value=",SHOW_INHERITED,ALPHA_COMPARATOR" />
+    <option name="AUTOSCROLL_MODE" value="false" />
+    <option name="ACTIVE_ACTIONS" value=",SHOW_INHERITED,ALPHA_COMPARATOR,SHOW_FIELDS" />
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -162,7 +194,16 @@
       <workItem from="1574338111974" duration="41496000" />
       <workItem from="1574935900205" duration="3500000" />
       <workItem from="1575021163791" duration="23942000" />
-      <workItem from="1575974758157" duration="928000" />
+      <workItem from="1575974758157" duration="14712000" />
+      <workItem from="1578311846920" duration="54077000" />
+      <workItem from="1579706336975" duration="2584000" />
+      <workItem from="1580118021451" duration="64000" />
+      <workItem from="1580118874535" duration="7387000" />
+      <workItem from="1580212775904" duration="6615000" />
+      <workItem from="1580223103956" duration="19772000" />
+      <workItem from="1580307704060" duration="4448000" />
+      <workItem from="1580313309893" duration="60792000" />
+      <workItem from="1580822077840" duration="13823000" />
     </task>
     <servers />
   </component>
@@ -182,24 +223,107 @@
       </map>
     </option>
   </component>
+  <component name="WindowStateProjectService">
+    <state x="736" y="359" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1580308183224">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="736" y="359" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580308183224" />
+    <state x="847" y="0" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog" timestamp="1580306805769">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="847" y="0" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580306805769" />
+    <state x="935" y="740" width="1283" height="571" key="#xdebugger.evaluate" timestamp="1580829426200">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="935" y="740" width="1283" height="571" key="#xdebugger.evaluate/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580829426200" />
+    <state width="1442" height="466" key="DebuggerActiveHint" timestamp="1580829471707">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state width="1442" height="466" key="DebuggerActiveHint/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580829471707" />
+    <state x="1061" y="459" key="FileChooserDialogImpl" timestamp="1580307213956">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="1061" y="459" key="FileChooserDialogImpl/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580307213956" />
+    <state width="2517" height="267" key="GridCell.Tab.0.bottom" timestamp="1580897975320">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state width="2517" height="267" key="GridCell.Tab.0.bottom/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580897975320" />
+    <state width="2517" height="267" key="GridCell.Tab.0.center" timestamp="1580897975320">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state width="2517" height="267" key="GridCell.Tab.0.center/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580897975320" />
+    <state width="2517" height="267" key="GridCell.Tab.0.left" timestamp="1580897975320">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state width="2517" height="267" key="GridCell.Tab.0.left/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580897975320" />
+    <state width="2517" height="267" key="GridCell.Tab.0.right" timestamp="1580897975320">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state width="2517" height="267" key="GridCell.Tab.0.right/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580897975320" />
+    <state width="2517" height="432" key="GridCell.Tab.1.bottom" timestamp="1580897975320">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state width="2517" height="432" key="GridCell.Tab.1.bottom/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580897975320" />
+    <state width="2517" height="432" key="GridCell.Tab.1.center" timestamp="1580897975320">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state width="2517" height="432" key="GridCell.Tab.1.center/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580897975320" />
+    <state width="2517" height="432" key="GridCell.Tab.1.left" timestamp="1580897975320">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state width="2517" height="432" key="GridCell.Tab.1.left/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580897975320" />
+    <state width="2517" height="432" key="GridCell.Tab.1.right" timestamp="1580897975320">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state width="2517" height="432" key="GridCell.Tab.1.right/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580897975320" />
+    <state x="784" y="347" key="SettingsEditor" timestamp="1580896557042">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="784" y="347" key="SettingsEditor/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580896557042" />
+    <state x="988" y="529" key="com.intellij.ide.util.TipDialog" timestamp="1580313320853">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="988" y="529" key="com.intellij.ide.util.TipDialog/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580313320853" />
+    <state x="846" y="440" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2" timestamp="1580724339537">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="846" y="440" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580724339537" />
+    <state x="745" y="116" width="1368" height="1271" key="find.popup" timestamp="1580896986464">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="745" y="116" width="1368" height="1271" key="find.popup/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580896986464" />
+    <state x="943" y="315" width="672" height="678" key="search.everywhere.popup" timestamp="1580307211333">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="943" y="315" width="672" height="678" key="search.everywhere.popup/0.0.2560.1400/3840.944.1920.1160/-1920.942.1920.1160@0.0.2560.1400" timestamp="1580307211333" />
+  </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <default-breakpoints>
-        <breakpoint type="python-exception">
-          <properties notifyOnTerminate="true" exception="BaseException">
-            <option name="notifyOnTerminate" value="true" />
-          </properties>
-        </breakpoint>
-      </default-breakpoints>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="python-line">
+          <url>file://$USER_HOME$/AppData/Local/Programs/Python/Python37/Lib/site-packages/tango/group.py</url>
+          <line>125</line>
+          <option name="timeStamp" value="29" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="python-line">
+          <url>file://$PROJECT_DIR$/janus/devices/camera.py</url>
+          <line>180</line>
+          <option name="timeStamp" value="40" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="python-line">
+          <url>file://$PROJECT_DIR$/janus/devices/camera.py</url>
+          <line>187</line>
+          <option name="timeStamp" value="48" />
+        </line-breakpoint>
+      </breakpoints>
+      <breakpoints-defaults>
+        <breakpoint type="python-line" />
+      </breakpoints-defaults>
     </breakpoint-manager>
-    <watches-manager>
-      <configuration name="PythonConfigurationType">
-        <watch expression="str(self.grid_widget.state_data.transforms[GridTransform.VIEW])" language="Python" />
-      </configuration>
-    </watches-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/trunk$main.coverage" NAME="main Coverage Results" MODIFIED="1575388622080" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/janus/applications/liveview" />
-    <SUITE FILE_PATH="coverage/trunk$xanes.coverage" NAME="xanes Coverage Results" MODIFIED="1574866938272" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/janus/applications/xanes" />
+    <SUITE FILE_PATH="coverage/trunk$.coverage" NAME=" Coverage Results" MODIFIED="1580897378335" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/trunk$xanes.coverage" NAME="xanes Coverage Results" MODIFIED="1578418227814" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/janus/applications/xanes" />
+    <SUITE FILE_PATH="coverage/trunk$main.coverage" NAME="main Coverage Results" MODIFIED="1580897845081" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/janus/applications/liveview" />
   </component>
 </project>
